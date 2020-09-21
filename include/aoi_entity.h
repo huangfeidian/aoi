@@ -7,7 +7,7 @@
 
 // 这里的单位为最小单位cm 不再存在浮点
 using guid_t = std::uint64_t;
-using pos_t = std::array<pos_t, 3>;
+using pos_t = std::array<std::int32_t, 3>;
 enum class aoi_flag:std::uint8_t
 {
 	ignore_enter_callback = 1,// 不处理enter消息通知
@@ -17,6 +17,20 @@ enum class aoi_flag:std::uint8_t
 	limited_by_max = 5,// 当前类型的entity会被aoi的max_interested限制住 导致无法进入相关entity的aoi
 
 };
+
+//set_result = set_1 - set_2
+template <typename T>
+void unordered_set_diff(const std::unordered_set<T>& set_1, const std::unordered_set<T>& set_2, std::unordered_set<T>& set_result)
+{
+	for(auto one_item: set_1)
+	{
+		if(set_2.find(one_guid) == set_2.end())
+		{
+			set_result.insert(one_item);
+		}
+	}
+}
+
 struct aoi_entity
 {
 	guid_t guid;// 唯一标识符
