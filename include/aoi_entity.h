@@ -30,7 +30,27 @@ void unordered_set_diff(const std::unordered_set<T>& set_1, const std::unordered
 		}
 	}
 }
+template <typename T>
+void unordered_set_join(const std::unordered_set<T>& set_1, const std::unordered_set<T>& set_2, std::unordered_set<T>& set_result)
+{
+	for(auto one_item: set_1)
+	{
+		if(set_2.find(one_guid) != set_2.end())
+		{
+			set_result.insert(one_item);
+		}
+	}
+}
 
+template <typename T>
+void unordered_set_union(const std::unordered_set<T>& set_1, const std::unordered_set<T>& set_2, std::unordered_set<T>& set_result)
+{
+	set_result = set_1;
+	for(auto one_item: set_2)
+	{
+		set_result.insert(one_item);
+	}
+}
 struct aoi_entity
 {
 	guid_t guid;// 唯一标识符

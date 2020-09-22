@@ -12,16 +12,7 @@ inline std::uint32_t computeTileHash(pos_t pos, const std::uint32_t tile_size, c
 	
 }
 // set_result = set_1 - set_2
-static void unordered_set_diff(const std::unordered_set<guid_t>& set_1, const std::unordered_set<guid_t>& set_2, std::unordered_set<guid_t>& set_result)
-{
-	for(auto one_guid: set_1)
-	{
-		if(set_2.find(one_guid) == set_2.end())
-		{
-			set_result.insert(one_guid);
-		}
-	}
-}
+
 
 tiled_aoi::tiled_aoi(std::uint32_t in_tile_size, std::uint32_t in_max_entity_size, std::uint32_t in_tile_blocks)
 : aoi_caclator()
