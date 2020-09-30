@@ -271,20 +271,4 @@ std::vector<guid_t> aoi_manager::entity_in_fan(pos_t center, std::uint16_t radiu
 	}
 	return result;
 }
-std::vector<guid_t> aoi_manager::update()
-{
-	auto temp_result = aoi_impl->update_all();
-	std::vector<guid_t> result;
-	result.reserve(temp_result.size());
-	for(auto one_entity: temp_result)
-	{
-		result.push_back(one_entity->guid);
-	}
-	for(auto one_entity: entities_removed)
-	{
-		all_guids.erase(one_entity->guid);
-	}
-	entities_removed.clear();
-	return result;
-}
 
