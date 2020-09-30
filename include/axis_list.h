@@ -1,0 +1,134 @@
+#pragma once
+
+#include <unordered_set>
+#include <aoi_entity.h>
+
+enum class list_node_type
+{
+	anchor = 0,
+	left = 1,
+	center = 2,
+	right = 4,
+};
+
+struct list_node
+{
+	aoi_entity* entity = nullptr;
+	list_node* prev = nullptr;
+	list_node* next = nullptr;
+	std::int32_t pos;
+	list_node_type node_type;
+};
+
+struct axis_nodes_for_entity
+{
+	list_node left;
+	list_node middle;
+	list_node right;
+	void set_entity(aoi_entity* cur_entity, int pos, std::uint16_t radius)
+	{
+		left.entity = right.entity=middle.entity=cur_entity;
+		left.node_type = list_node_type::left;
+		middle.node_type = list_node_type::center;
+		right.node_type = list_node_type::right;
+
+		left.pos = pos - radius;
+		right.pos = pos + radius;
+		middle.pos = pos;
+	}
+};
+struct axis_2d_nodes_for_entity
+{
+	axis_nodes_for_entity x_nodes;
+	axis_nodes_for_entity z_nodes;
+	// 由于两个轴上计算出来的只是2d矩形区域 而aoi计算区域则是圆形的  
+	// 所以2d计算出来的结果需要先存在这里 然后再计算是否真的进入aoi
+	std::unordered_set<aoi_entity*> xz_interested_by;
+	std::unordered_set<aoi_entity*> xz_interest_in;
+	aoi_entity* entity;
+	bool is_leaving = false;
+	void set_entity(aoi_entity* cur_entity)
+	{
+		x_nodes.set_entity(cur_entity, cur_entity->pos[0], cur_entity->radius);
+		z_nodes.set_entity(cur_entity, cur_entity->pos[2], cur_entity->radius);
+		xz_interest_in.clear();
+		xz_interested_by.clear();
+		entity = cur_entity;
+	}
+	bool enter(aoi_entity* other_entity);
+	bool leave(aoi_entity* other_entity);
+	void move();
+	void update_radius(std::uint16_t radius);
+	bool in_range(const aoi_entity* other_entity);
+	void detach();
+};
+
+struct sweep_result
+{
+	std::unordered_set<aoi_entity*> left;
+	std::unordered_set<aoi_entity*> middle;
+	std::unordered_set<aoi_entity*> right;
+	void clear()
+	{
+		left.clear();
+		middle.clear();
+		right.clear();
+	}
+};
+struct move_result
+{
+	std::unordered_set<aoi_entity*> enter_entities;
+	std::unordered_set<aoi_entity*> leave_entities;
+
+	std::unordered_set<aoi_entity*> enter_notify_entities;
+	std::unordered_set<aoi_entity*> leave_notify_entities;
+	void clear()
+	{
+		enter_notify_entities.clear();
+		enter_entities.clear();
+		leave_notify_entities.clear();
+		leave_entities.clear();
+	}
+	void merge(const move_result& a, const move_result& b)
+	{
+		unordered_set_union(a.enter_entities, b.enter_entities, enter_entities);
+		unordered_set_union(a.leave_entities, b.leave_entities, leave_entities);
+		unordered_set_union(a.leave_notify_entities, b.leave_notify_entities, leave_notify_entities);
+		unordered_set_union(a.enter_notify_entities, b.enter_notify_entities, enter_notify_entities);
+	}
+
+};
+
+class axis_list
+{
+private:
+	list_node head;
+	list_node tail;
+	std::vector<list_node*> anchors;
+	std::vector<list_node> anchor_buffer;
+	std::vector<std::int32_t> anchor_poses;
+	const std::uint32_t node_per_anchor;
+	const std::uint32_t max_entity_count;
+	const std::int32_t min_pos;
+	const std::int32_t max_pos;
+	const std::uint16_t max_radius;
+	sweep_result sweep_buffer[3];
+	move_result update_info;
+
+	void insert_before(list_node* prev, list_node* cur);
+	void remove(list_node* cur);
+	void move_forward(list_node* cur, sweep_result& visited_nodes, std::uint8_t flag);
+	void move_backward(list_node* cur, sweep_result& visited_nodes, std::uint8_t flag);
+	list_node* find_boundary(std::int32_t pos, bool is_lower) const;
+	void insert_node(list_node* cur, bool is_lower);
+public:
+	axis_list(std::uint32_t max_entity_count, std::uint16_t max_aoi_radius, std::int32_t min_pos, std::int32_t max_pos);
+	void update_anchors();
+	void insert_entity(axis_nodes_for_entity* entity_nodes);
+
+	void remove_entity(axis_nodes_for_entity* entity_nodes);
+	void update_entity_pos(axis_nodes_for_entity* entity_nodes, std::int32_t offset);
+	void update_entity_radius(axis_nodes_for_entity* entity_nodes, std::int32_t delta_radius);
+	std::unordered_set<aoi_entity*> entity_in_range(std::int32_t range_begin, std::int32_t range_end) const;
+	const move_result& get_update_info() const;
+};

@@ -30,6 +30,26 @@ void unordered_set_diff(const std::unordered_set<T>& set_1, const std::unordered
 		}
 	}
 }
+//set_result = item in set_1 or item in set_2 but not in both sets
+template <typename T>
+void unordered_set_sym_diff(const std::unordered_set<T>& set_1, const std::unordered_set<T>& set_2, std::unordered_set<T>& set_result)
+{
+	for(auto one_item: set_1)
+	{
+		if(set_2.find(one_guid) == set_2.end())
+		{
+			set_result.insert(one_item);
+		}
+	}
+	for(auto one_item: set_2)
+	{
+		if(set_1.find(one_guid) == set_1.end())
+		{
+			set_result.insert(one_item);
+		}
+	}
+}
+
 template <typename T>
 void unordered_set_join(const std::unordered_set<T>& set_1, const std::unordered_set<T>& set_2, std::unordered_set<T>& set_result)
 {
@@ -64,8 +84,6 @@ struct aoi_entity
 	// 上一轮计算的interested_by 集合
 	std::vector<guid_t> prev_interested_by;
 
-	std::unordered_set<guid_t> leave_guids;//离开当前entity aoi 半径的guid列表
-	std::unordered_set<guid_t> enter_guids;// 进入当前entity aoi半径的guid列表
 	std::unordered_set<guid_t> force_interest_in;// 忽略半径强制加入到当前entity aoi列表的guid
 	std::unordered_set<guid_t> force_interested_by;// 因为强制aoi而进入的其他entity的guid 集合
 	std::uint32_t flag;//aoi相关flag
@@ -91,14 +109,14 @@ struct aoi_entity
 		}
 		if(height)
 		{
-			if(diff_z > height || diff_z < -height)
+			if(diff_y > height || diff_y < -height)
 			{
 				return false;
 			}
 		}
 		return true;
 	}
-	bool can_add_enter(const aoi_entity& other, bool ignore_dist = true, bool force_add = false) const
+	bool can_pass_flag_check(const aoi_entity& other) const
 	{
 		if(other.guid == guid)
 		{
@@ -112,11 +130,19 @@ struct aoi_entity
 		{
 			return false;
 		}
+		return true;
+	}
+	bool can_add_enter(const aoi_entity& other, bool ignore_dist = true, bool force_add = false) const
+	{
+		if(!can_pass_flag_check(other))
+		{
+			return false;
+		}
 		if(!force_add && other.has_flag(aoi_flag::limited_by_max) && interest_in.size() >= max_interest_in)
 		{
 			return false;
 		}
-		if(interest_in.find(other.guid) == interest_in.end())
+		if(interest_in.find(other.guid) != interest_in.end())
 		{
 			return false;
 		}
@@ -139,12 +165,7 @@ struct aoi_entity
 		return true;
 	}
 	void enter_impl(aoi_entity& other)
-	{
-		if(!leave_guids.erase(other.guid))
-		{
-			enter_guids.insert(other.guid);
-		}
-		
+	{		
 		interest_in.insert(other.guid);
 		other.interested_by.insert(guid);
 	}
@@ -166,13 +187,8 @@ struct aoi_entity
 	}
 	void leave_impl(aoi_entity& other)
 	{
-		if(!enter_guids.erase(other.guid))
-		{
-			leave_guids.insert(other.guid);
-		}
 		interest_in.erase(other.guid);
 		other.interested_by.erase(guid);
-
 	}
 	bool leave_by_pos(aoi_entity& other)
 	{
@@ -208,16 +224,16 @@ struct aoi_entity
 			return false;
 		}
 	}
-	void after_update()
+	void after_update(std::unordered_set<guid_t>& enter_guids, std::unordered_set<guid_t>& leave_guids)
 	{
 		// 处理完成之后 更新之前的记录 
+		std::unordered_set<guid_t> temp_pre_interest_in{prev_interest_in.begin(), prev_interest_in.end()};
+		unordered_set_diff(interest_in, temp_pre_interest_in, enter_guids);
+		unordered_set_diff(temp_pre_interest_in, interest_in, leave_guids);
 		prev_interest_in.clear();
 		prev_interested_by.clear();
-		std::insert(prev_interest_in.end(), interest_in.begin(), interest_in.end());
-		std::insert(prev_interested_by.end(), interested_by.begin(), interested_by.end());
-
-		enter_guids.clear();
-		leave_guids.clear();
+		prev_interest_in.insert(prev_interest_in.end(), interest_in.begin(), interest_in.end());
+		prev_interested_by.insert(prev_interested_by.end(), interested_by.begin(), interested_by.end());
 	}
 };
 
