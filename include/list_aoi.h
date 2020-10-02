@@ -14,14 +14,15 @@ private:
 	move_result update_info;
 	std::unordered_set<aoi_entity*> dirty_entities;
 public:
-	list_2d_aoi(std::uint32_t max_entity_size, std::uint16_t max_aoi_radius, pos_t border_min, pos_t border_max);
+	list_2d_aoi(std::uint32_t max_entity_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max);
 	bool add_entity(aoi_entity* cur_entity);
 	bool remove_entity(aoi_entity* cur_entity);
 	void on_position_update(aoi_entity* cur_entity, pos_t new_pos);
-	void on_radius_update(aoi_entity* cur_entity, std::uint16_t radius);
-	std::unordered_set<aoi_entity*> entity_in_circle(pos_t center, std::uint16_t radius) const override;
-	std::unordered_set<aoi_entity*> entity_in_cylinder(pos_t center, std::uint16_t radius, std::uint16_t height)const override;
-	std::unordered_set<aoi_entity*> entity_in_rectangle(pos_t center, std::uint16_t x_width, std::uint16_t z_width)const override;
-	std::unordered_set<aoi_entity*> entity_in_cuboid(pos_t center, std::uint16_t x_width, std::uint16_t z_width, std::uint16_t y_height)const override;
+	void on_radius_update(aoi_entity* cur_entity, pos_unit_t radius);
+	std::unordered_set<aoi_entity*> entity_in_circle(pos_t center, pos_unit_t radius) const override;
+	std::unordered_set<aoi_entity*> entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const override;
+	std::unordered_set<aoi_entity*> entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const override;
+	std::unordered_set<aoi_entity*> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const override;
 	std::unordered_set<aoi_entity*> update_all();
+	void dump(std::ostream& out_debug) const override;
 };

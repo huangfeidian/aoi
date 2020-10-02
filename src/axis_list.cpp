@@ -1,7 +1,23 @@
 #include "axis_list.h"
+#include "set_utility.h"
 #include <algorithm>
 
-axis_list::axis_list(std::uint32_t in_max_entity_count, std::uint16_t in_max_aoi_radius, std::int32_t in_min_pos, std::int32_t in_max_pos)
+void move_result::clear()
+{
+	enter_notify_entities.clear();
+	enter_entities.clear();
+	leave_notify_entities.clear();
+	leave_entities.clear();
+}
+void move_result::merge(const move_result& a, const move_result& b)
+{
+	unordered_set_union(a.enter_entities, b.enter_entities, enter_entities);
+	unordered_set_union(a.leave_entities, b.leave_entities, leave_entities);
+	unordered_set_union(a.leave_notify_entities, b.leave_notify_entities, leave_notify_entities);
+	unordered_set_union(a.enter_notify_entities, b.enter_notify_entities, enter_notify_entities);
+}
+
+axis_list::axis_list(std::uint32_t in_max_entity_count, pos_unit_t in_max_aoi_radius, pos_unit_t in_min_pos, pos_unit_t in_max_pos)
 : max_entity_count(in_max_entity_count)
 , node_per_anchor(std::min(std::uint32_t(std::floor(std::sqrt(in_max_entity_count))), 40u))
 , min_pos(in_min_pos)
@@ -17,6 +33,7 @@ axis_list::axis_list(std::uint32_t in_max_entity_count, std::uint16_t in_max_aoi
 	tail.next = nullptr;
 	head.pos = min_pos - 2 * in_max_aoi_radius;
 	tail.pos = max_pos + 2 * in_max_aoi_radius;
+	update_anchors();
 }
 
 void axis_list::update_anchors()
@@ -31,7 +48,7 @@ void axis_list::update_anchors()
 	auto prev = &head;
 	auto cur_node = head.next;
 	std::uint32_t count = 0;
-	std::int32_t pos = head.pos;
+	pos_unit_t pos = head.pos;
 	while(cur_node != &tail)
 	{
 		if(count >= node_per_anchor && cur_node->pos != pos)
@@ -47,6 +64,7 @@ void axis_list::update_anchors()
 		}
 		pos = cur_node->pos;
 		cur_node = cur_node->next;
+		count++;
 	}
 	list_node* anchor_node = new list_node;
 	anchor_node->node_type = list_node_type::anchor;
@@ -55,13 +73,22 @@ void axis_list::update_anchors()
 	anchor_node->entity = nullptr;
 	anchors.push_back(anchor_node);
 	insert_before(cur_node, anchors.back());
+	dirty_count = std::max(100u, std::uint32_t(std::sqrt(max_entity_count * 10)));
 }
 
+void axis_list::check_update_anchors()
+{
+	if (dirty_count == 0)
+	{
+		update_anchors();
+	}
+	dirty_count--;
+}
 
-list_node* axis_list::find_boundary(std::int32_t pos, bool is_lower) const
+list_node* axis_list::find_boundary(pos_unit_t pos, bool is_lower) const
 {
 	auto hint = std::lower_bound(anchor_poses.begin(), anchor_poses.end(), pos);
-	auto temp_node = anchors[*hint];
+	auto temp_node = anchors[std::distance(anchor_poses.begin(), hint)];
 	if(is_lower)
 	{
 		while(temp_node->pos >= pos)
@@ -85,24 +112,25 @@ void axis_list::insert_node(list_node* cur, bool is_lower)
 	auto next_node = find_boundary(cur->pos, is_lower);
 	insert_before(next_node, cur);
 }
-void axis_list::insert_before(list_node* prev, list_node* cur)
+void axis_list::insert_before(list_node* next, list_node* cur)
 {
-	cur->next = prev;
-	cur->prev = prev->prev;
+	cur->next = next;
+	cur->prev = next->prev;
 	cur->prev->next = cur;
 	cur->next->prev = cur;
 }
 
 void axis_list::remove(list_node* cur)
 {
-	cur->next->prev = cur->next;
-	cur->prev->next = cur;
+	cur->next->prev = cur->prev;
+	cur->prev->next = cur->next;
 	cur->next = nullptr;
 	cur->prev = nullptr;
 }
 
 void axis_list::insert_entity(axis_nodes_for_entity* entity_nodes)
 {
+	check_update_anchors();
 	std::uint32_t last_hint = 0;
 	list_node* last_node = &head;
 	insert_node(&entity_nodes->left, true);
@@ -131,6 +159,7 @@ void axis_list::insert_entity(axis_nodes_for_entity* entity_nodes)
 
 void axis_list::remove_entity(axis_nodes_for_entity* entity_nodes)
 {
+	check_update_anchors();
 	list_node* temp_nodes[3] = {&(entity_nodes->left), &(entity_nodes->middle), &(entity_nodes->right)};
 	for(int i = 0; i< 3; i++)
 	{
@@ -203,10 +232,10 @@ void axis_list::move_backward(list_node* cur, sweep_result& visited_nodes, std::
 		}
 		prev = prev->prev;
 	}
-	insert_before(prev, cur);
+	insert_before(prev->next, cur);
 }
 
-std::unordered_set<aoi_entity*> axis_list::entity_in_range(std::int32_t range_begin, std::int32_t range_end) const
+std::unordered_set<aoi_entity*> axis_list::entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const
 {
 	std::unordered_set<aoi_entity*> result;
 	auto boundary_left = find_boundary(std::max(min_pos + 2, range_begin), true);
@@ -222,8 +251,9 @@ std::unordered_set<aoi_entity*> axis_list::entity_in_range(std::int32_t range_be
 	return result;
 }
 
-void axis_list::update_entity_pos(axis_nodes_for_entity* entity_nodes, std::int32_t offset)
+void axis_list::update_entity_pos(axis_nodes_for_entity* entity_nodes, pos_unit_t offset)
 {
+	check_update_anchors();
 	if(offset == 0)
 	{
 		return;
@@ -253,14 +283,15 @@ void axis_list::update_entity_pos(axis_nodes_for_entity* entity_nodes, std::int3
 		move_backward(&entity_nodes->left, sweep_buffer[0], (std::uint8_t)list_node_type::center);
 		move_backward(&entity_nodes->middle, sweep_buffer[1], (std::uint8_t)list_node_type::left + (std::uint8_t)list_node_type::right);
 		move_backward(&entity_nodes->right, sweep_buffer[2], (std::uint8_t)list_node_type::center);
-		unordered_set_diff(sweep_buffer[0].middle, sweep_buffer[2].middle, update_info.leave_entities);
-		unordered_set_diff(sweep_buffer[2].middle, sweep_buffer[0].middle, update_info.enter_entities);
+		unordered_set_diff(sweep_buffer[0].middle, sweep_buffer[2].middle, update_info.enter_entities);
+		unordered_set_diff(sweep_buffer[2].middle, sweep_buffer[0].middle, update_info.leave_entities);
 		unordered_set_diff(sweep_buffer[1].left, sweep_buffer[1].right, update_info.leave_notify_entities);
 		unordered_set_diff(sweep_buffer[1].right, sweep_buffer[1].left, update_info.enter_notify_entities);
 	}
 }
-void axis_list::update_entity_radius(axis_nodes_for_entity* entity_nodes, std::int32_t delta_radius)
+void axis_list::update_entity_radius(axis_nodes_for_entity* entity_nodes, pos_unit_t delta_radius)
 {
+	check_update_anchors();
 	update_info.clear();
 	if(delta_radius == 0)
 	{
@@ -325,7 +356,7 @@ bool axis_2d_nodes_for_entity::enter(aoi_entity* other_entity)
 	{
 		return false;
 	}
-	if(xz_interest_in.size() >= 2 * entity->max_interest_in)
+	if(entity->max_interest_in && xz_interest_in.size() >= 2 * entity->max_interest_in)
 	{
 		return false;
 	}
@@ -370,4 +401,20 @@ void axis_2d_nodes_for_entity::detach()
 	xz_interest_in.clear();
 	xz_interested_by.clear();
 	is_leaving = true;
+}
+
+std::vector<axis_2d_nodes_for_entity*> axis_list::dump(std::ostream& out_debug) const
+{
+	auto temp = head.next;
+	std::vector<axis_2d_nodes_for_entity*> result;
+	while (temp != &tail)
+	{
+		temp->dump(out_debug);
+		if (temp->node_type == list_node_type::center)
+		{
+			result.push_back(reinterpret_cast<axis_2d_nodes_for_entity*>(temp->entity->cacl_data));
+		}
+		temp = temp->next;
+	}
+	return result;
 }

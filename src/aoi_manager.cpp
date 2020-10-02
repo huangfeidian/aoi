@@ -1,7 +1,34 @@
 #include "aoi_manager.h"
 #include "aoi_interface.h"
+#include <cmath>
 // 判断是否在扇形范围内
-static bool is_in_fan(const pos_t& center, float yaw, float yaw_range, const pos_t& cur);
+#define PI 3.14159f
+static bool is_in_fan(const pos_t& center, float yaw, float yaw_range, const pos_t& cur)
+{
+	if (yaw_range > PI / 2)
+	{
+		if (yaw <= PI)
+		{
+			return !is_in_fan(center, yaw + PI, PI - yaw_range, cur);
+		}
+		else
+		{
+			return !is_in_fan(center, yaw - PI, PI - yaw_range, cur);
+		}
+	}
+	auto diff_x = cur[0] - center[0];
+	auto diff_z = cur[2] - center[2];
+
+	auto len = std::sqrtf(diff_x * diff_x + diff_z * diff_z);
+
+	auto cos_range = std::cos(yaw_range);
+	auto sin_yaw = std::sin(yaw);
+	auto cos_yaw = std::cos(yaw);
+
+	auto area = (cos_yaw * diff_x + sin_yaw * diff_z) / len;
+	return area >= cos_range;
+
+}
 
 static std::vector<guid_t> entity_set_to_guid(const std::unordered_set<aoi_entity*> entities)
 {
@@ -13,7 +40,7 @@ static std::vector<guid_t> entity_set_to_guid(const std::unordered_set<aoi_entit
 	}
 	return result;
 }
-aoi_manager::aoi_manager(aoi_interface* in_aoi_impl, std::uint32_t in_max_entity_size, std::uint16_t in_max_aoi_radius, pos_t in_min, pos_t in_max)
+aoi_manager::aoi_manager(aoi_interface* in_aoi_impl, std::uint32_t in_max_entity_size, pos_unit_t in_max_aoi_radius, pos_t in_min, pos_t in_max)
 : entity_pool(in_max_entity_size)
 , aoi_impl(in_aoi_impl)
 , min(in_min)
@@ -22,6 +49,15 @@ aoi_manager::aoi_manager(aoi_interface* in_aoi_impl, std::uint32_t in_max_entity
 , max_aoi_radius(in_max_aoi_radius)
 {
 
+}
+aoi_manager::~aoi_manager()
+
+{
+	if (aoi_impl)
+	{
+		delete aoi_impl;
+		aoi_impl = nullptr;
+	}
 }
 bool aoi_manager::is_in_border(const pos_t& pos) const
 {
@@ -39,7 +75,7 @@ bool aoi_manager::is_in_border(const pos_t& pos) const
 	}
 	return true;
 }
-bool aoi_manager::add_entity(guid_t guid, std::uint16_t radius, std::uint16_t height, pos_t pos, std::uint32_t flag, std::uint16_t max_interest_in)
+bool aoi_manager::add_entity(guid_t guid, pos_unit_t radius, pos_unit_t height, pos_t pos, std::uint32_t flag, std::uint16_t max_interest_in)
 {
 	if(!aoi_impl)
 	{
@@ -68,7 +104,16 @@ bool aoi_manager::add_entity(guid_t guid, std::uint16_t radius, std::uint16_t he
 	cur_entity->height = height;
 	cur_entity->pos = pos;
 	cur_entity->max_interest_in = max_interest_in;
-	return aoi_impl->add_entity(cur_entity);
+	all_guids[guid] = cur_entity;
+	if (!aoi_impl->add_entity(cur_entity))
+	{
+		all_guids.erase(guid);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 bool aoi_manager::remove_entity(guid_t guid)
@@ -133,7 +178,7 @@ bool aoi_manager::remove_entity(guid_t guid)
 
 }
 
-bool aoi_manager::change_entity_radius(guid_t guid, std::uint16_t radius)
+bool aoi_manager::change_entity_radius(guid_t guid, pos_unit_t radius)
 {
 	auto cur_iter = all_guids.find(guid);
 	if(radius >= max_aoi_radius)
@@ -205,7 +250,7 @@ const std::unordered_set<guid_t>& aoi_manager::interested_by(guid_t guid)const
 	return cur_iter->second->interested_by;
 }
 
-std::vector<guid_t> aoi_manager::entity_in_circle(pos_t center, std::uint16_t radius)
+std::vector<guid_t> aoi_manager::entity_in_circle(pos_t center, pos_unit_t radius)
 {
 	if(!aoi_impl)
 	{
@@ -214,7 +259,7 @@ std::vector<guid_t> aoi_manager::entity_in_circle(pos_t center, std::uint16_t ra
 	return entity_set_to_guid(aoi_impl->entity_in_circle(center, radius));
 }
 
-std::vector<guid_t> aoi_manager::entity_in_cylinder(pos_t center, std::uint16_t radius, std::uint16_t height)
+std::vector<guid_t> aoi_manager::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)
 {
 	if(!aoi_impl)
 	{
@@ -223,7 +268,7 @@ std::vector<guid_t> aoi_manager::entity_in_cylinder(pos_t center, std::uint16_t 
 	return entity_set_to_guid(aoi_impl->entity_in_cylinder(center, radius, height));
 }
 
-std::vector<guid_t> aoi_manager::entity_in_rectangle(pos_t center, std::uint16_t x_width, std::uint16_t z_width)
+std::vector<guid_t> aoi_manager::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)
 {
 	if(!aoi_impl)
 	{
@@ -232,12 +277,12 @@ std::vector<guid_t> aoi_manager::entity_in_rectangle(pos_t center, std::uint16_t
 	return entity_set_to_guid(aoi_impl->entity_in_rectangle(center, x_width, z_width));
 }
 
-std::vector<guid_t> aoi_manager::entity_in_square(pos_t center, std::uint16_t width)
+std::vector<guid_t> aoi_manager::entity_in_square(pos_t center, pos_unit_t width)
 {
 	return entity_in_rectangle(center, width, width);
 }
 
-std::vector<guid_t> aoi_manager::entity_in_cuboid(pos_t center, std::uint16_t x_width, std::uint16_t z_width, std::uint16_t y_height)
+std::vector<guid_t> aoi_manager::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)
 {
 	if(!aoi_impl)
 	{
@@ -246,12 +291,20 @@ std::vector<guid_t> aoi_manager::entity_in_cuboid(pos_t center, std::uint16_t x_
 	return entity_set_to_guid(aoi_impl->entity_in_cuboid(center, x_width, z_width, y_height));
 }
 
-std::vector<guid_t> aoi_manager::entity_in_cube(pos_t center, std::uint16_t width)
+std::vector<guid_t> aoi_manager::entity_in_cube(pos_t center, pos_unit_t width)
 {
 	return entity_set_to_guid(aoi_impl->entity_in_cuboid(center, width, width, width));
 }
-std::vector<guid_t> aoi_manager::entity_in_fan(pos_t center, std::uint16_t radius, float yaw, float yaw_range)
+std::vector<guid_t> aoi_manager::entity_in_fan(pos_t center, pos_unit_t radius, float yaw, float yaw_range)
 {
+	if (yaw < 0 || yaw >= 2 * PI)
+	{
+		return {};
+	}
+	if (yaw_range <= 0 || yaw_range >= PI)
+	{
+		return {};
+	}
 	auto circle_guids = entity_in_circle(center, radius);
 	std::vector<guid_t> result;
 	result.reserve(circle_guids.size() / 2 + 1);
@@ -272,3 +325,27 @@ std::vector<guid_t> aoi_manager::entity_in_fan(pos_t center, std::uint16_t radiu
 	return result;
 }
 
+void aoi_manager::dump(std::ostream& out_debug) const
+{
+	for (auto one_item : all_guids)
+	{
+		auto guid = one_item.first;
+		auto entity = one_item.second;
+		out_debug << "info for guid " << guid << " pos: " <<entity->pos[0]<<","<<entity->pos[2]<<" radius:"<<entity->radius<< std::endl;
+		std::vector<guid_t> temp;
+		temp.insert(temp.end(), entity->interest_in.begin(), entity->interest_in.end());
+		std::sort(temp.begin(), temp.end());
+		out_debug << "interest in is:";
+		for (auto one_guid : temp)
+		{
+			out_debug << one_guid << ", ";
+		}
+		out_debug << std::endl;
+
+	}
+	out_debug << "aoi_impl begin" << std::endl;
+	if (aoi_impl)
+	{
+		aoi_impl->dump(out_debug);
+	}
+}

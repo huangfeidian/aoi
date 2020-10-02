@@ -10,26 +10,28 @@ class grid_aoi: public aoi_interface
 		aoi_entity* entity = nullptr;
 		grid_entry* next = nullptr;
 		grid_entry* prev = nullptr;
-		int grid_x;
-		int grid_z;
+		int grid_x = 0;
+		int grid_z = 0;
 	};
 public:
-	grid_aoi(std::uint32_t max_entity_size, std::uint32_t max_aoi_radius, pos_t border_min, pos_t border_max, std::uint32_t grid_size,  std::uint32_t grid_blocks);
+	grid_aoi(std::uint32_t max_entity_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max, std::uint32_t grid_size,  std::uint32_t grid_blocks);
 	~grid_aoi();
 	bool add_entity(aoi_entity* entity) override;
 	bool remove_entity(aoi_entity* entity) override;
 	void on_position_update(aoi_entity* entity, pos_t new_pos) override;
-	void on_radius_update(aoi_entity* entity, std::uint16_t new_radius) override;
+	void on_radius_update(aoi_entity* entity, pos_unit_t new_radius) override;
 	std::unordered_set<aoi_entity*> update_all() override;
-	std::unordered_set<aoi_entity*> entity_in_circle(pos_t center, std::uint16_t radius) const override;
+	std::unordered_set<aoi_entity*> entity_in_circle(pos_t center, pos_unit_t radius) const override;
 
-	std::unordered_set<aoi_entity*> entity_in_cylinder(pos_t center, std::uint16_t radius, std::uint16_t height) const override;
-	std::unordered_set<aoi_entity*> entity_in_rectangle(pos_t center, std::uint16_t x_width, std::uint16_t z_width) const override;
+	std::unordered_set<aoi_entity*> entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height) const override;
+	std::unordered_set<aoi_entity*> entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width) const override;
 
-	std::unordered_set<aoi_entity*> entity_in_cuboid(pos_t center, std::uint16_t x_width, std::uint16_t z_width, std::uint16_t y_height) const override;
+	std::unordered_set<aoi_entity*> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const override;
+	void dump(std::ostream& out_debug) const override;
 private:
 	void unlink(grid_entry* cur_entry);
 	void link(grid_entry* cur_entry, const pos_t& pos);
+	int cacl_grid_id(pos_unit_t pos) const;
 public:
 	std::uint32_t grid_hash(const pos_t& pos) const;
 

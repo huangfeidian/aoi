@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 #include <aoi_entity.h>
+#include <ostream>
 
 enum class list_node_type
 {
@@ -16,8 +17,17 @@ struct list_node
 	aoi_entity* entity = nullptr;
 	list_node* prev = nullptr;
 	list_node* next = nullptr;
-	std::int32_t pos;
+	pos_unit_t pos;
 	list_node_type node_type;
+	void dump(std::ostream& out_debug) const
+	{
+		if (!entity)
+		{
+			out_debug << "anchor node with pos " << pos << std::endl;
+			return;
+		}
+		out_debug << "node for guid " << entity->guid << " node_type " << int(node_type) << " pos " << pos << std::endl;
+	}
 };
 
 struct axis_nodes_for_entity
@@ -25,7 +35,7 @@ struct axis_nodes_for_entity
 	list_node left;
 	list_node middle;
 	list_node right;
-	void set_entity(aoi_entity* cur_entity, int pos, std::uint16_t radius)
+	void set_entity(aoi_entity* cur_entity, pos_unit_t pos, pos_unit_t radius)
 	{
 		left.entity = right.entity=middle.entity=cur_entity;
 		left.node_type = list_node_type::left;
@@ -82,20 +92,8 @@ struct move_result
 
 	std::unordered_set<aoi_entity*> enter_notify_entities;
 	std::unordered_set<aoi_entity*> leave_notify_entities;
-	void clear()
-	{
-		enter_notify_entities.clear();
-		enter_entities.clear();
-		leave_notify_entities.clear();
-		leave_entities.clear();
-	}
-	void merge(const move_result& a, const move_result& b)
-	{
-		unordered_set_union(a.enter_entities, b.enter_entities, enter_entities);
-		unordered_set_union(a.leave_entities, b.leave_entities, leave_entities);
-		unordered_set_union(a.leave_notify_entities, b.leave_notify_entities, leave_notify_entities);
-		unordered_set_union(a.enter_notify_entities, b.enter_notify_entities, enter_notify_entities);
-	}
+	void clear();
+	void merge(const move_result& a, const move_result& b);
 
 };
 
@@ -109,26 +107,28 @@ private:
 	std::vector<std::int32_t> anchor_poses;
 	const std::uint32_t node_per_anchor;
 	const std::uint32_t max_entity_count;
-	const std::int32_t min_pos;
-	const std::int32_t max_pos;
+	const pos_unit_t min_pos;
+	const pos_unit_t max_pos;
 	const std::uint16_t max_radius;
 	sweep_result sweep_buffer[3];
 	move_result update_info;
-
-	void insert_before(list_node* prev, list_node* cur);
+	std::uint32_t dirty_count = 0;
+	void insert_before(list_node* next, list_node* cur);
 	void remove(list_node* cur);
 	void move_forward(list_node* cur, sweep_result& visited_nodes, std::uint8_t flag);
 	void move_backward(list_node* cur, sweep_result& visited_nodes, std::uint8_t flag);
-	list_node* find_boundary(std::int32_t pos, bool is_lower) const;
+	list_node* find_boundary(pos_unit_t pos, bool is_lower) const;
 	void insert_node(list_node* cur, bool is_lower);
+	void check_update_anchors();
 public:
-	axis_list(std::uint32_t max_entity_count, std::uint16_t max_aoi_radius, std::int32_t min_pos, std::int32_t max_pos);
+	axis_list(std::uint32_t max_entity_count, pos_unit_t max_aoi_radius, pos_unit_t min_pos, pos_unit_t max_pos);
 	void update_anchors();
 	void insert_entity(axis_nodes_for_entity* entity_nodes);
 
 	void remove_entity(axis_nodes_for_entity* entity_nodes);
-	void update_entity_pos(axis_nodes_for_entity* entity_nodes, std::int32_t offset);
-	void update_entity_radius(axis_nodes_for_entity* entity_nodes, std::int32_t delta_radius);
-	std::unordered_set<aoi_entity*> entity_in_range(std::int32_t range_begin, std::int32_t range_end) const;
+	void update_entity_pos(axis_nodes_for_entity* entity_nodes, pos_unit_t offset);
+	void update_entity_radius(axis_nodes_for_entity* entity_nodes, pos_unit_t delta_radius);
+	std::unordered_set<aoi_entity*> entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const;
 	const move_result& get_update_info() const;
+	std::vector<axis_2d_nodes_for_entity*> dump(std::ostream& out_debug) const;
 };

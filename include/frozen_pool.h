@@ -23,7 +23,7 @@ public:
 	}
 	T* request()
 	{
-		if(avail_indexes >= size)
+		if(cur_avail_idx >= size)
 		{
 			return nullptr;
 		}

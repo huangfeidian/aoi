@@ -1,8 +1,9 @@
 #include "list_aoi.h"
+#include "set_utility.h"
 #include <cmath>
 
 
-list_2d_aoi::list_2d_aoi(std::uint32_t in_max_agent, std::uint16_t in_max_aoi_radius, pos_t in_border_min, pos_t in_border_max)
+list_2d_aoi::list_2d_aoi(std::uint32_t in_max_agent, pos_unit_t in_max_aoi_radius, pos_t in_border_min, pos_t in_border_max)
 : aoi_interface(in_max_agent, in_max_aoi_radius, in_border_min, in_border_max)
 , x_axis(in_max_agent, in_max_aoi_radius, in_border_min[0], in_border_max[0])
 , z_axis(in_max_agent, in_max_aoi_radius, in_border_min[2], in_border_max[2])
@@ -64,7 +65,7 @@ bool list_2d_aoi::remove_entity(aoi_entity* cur_entity)
 	return true;
 }
 
-void list_2d_aoi::on_radius_update(aoi_entity* cur_entity, std::uint16_t radius)
+void list_2d_aoi::on_radius_update(aoi_entity* cur_entity, pos_unit_t radius)
 {
 	auto delta_radius = (int)(cur_entity->radius) - radius;
 	auto cur_nodes = (axis_2d_nodes_for_entity*)(cur_entity->cacl_data);
@@ -90,8 +91,8 @@ void list_2d_aoi::on_position_update(aoi_entity* cur_entity, pos_t new_pos)
 	auto cur_nodes = (axis_2d_nodes_for_entity*)(cur_entity->cacl_data);
 	auto x_nodes = &(cur_nodes->x_nodes);
 	auto z_nodes = &(cur_nodes->z_nodes);
-	x_axis.update_entity_pos(x_nodes, new_pos[0]);
-	z_axis.update_entity_pos(z_nodes, new_pos[2]);
+	x_axis.update_entity_pos(x_nodes, new_pos[0] - x_nodes->middle.pos);
+	z_axis.update_entity_pos(z_nodes, new_pos[2] - z_nodes->middle.pos);
 	cur_entity->pos = new_pos;
 	update_info.clear();
 	update_info.merge(x_axis.get_update_info(), z_axis.get_update_info());
@@ -99,7 +100,7 @@ void list_2d_aoi::on_position_update(aoi_entity* cur_entity, pos_t new_pos)
 	{
 		cur_nodes->enter(one_entity);
 	}
-	for(auto one_entity: update_info.leave_notify_entities)
+	for(auto one_entity: update_info.leave_entities)
 	{
 		cur_nodes->leave(one_entity);
 	}
@@ -153,7 +154,7 @@ std::unordered_set<aoi_entity*> list_2d_aoi::update_all()
 	return result;
 }
 
-std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, std::uint16_t x_width, std::uint16_t z_width)const
+std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
@@ -161,7 +162,7 @@ std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, s
 	unordered_set_join(axis_x_result, axis_z_result, entity_result);
 	return entity_result;
 }
-std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_circle(pos_t center, std::uint16_t radius)const
+std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_unit_t radius)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - radius, center[0] + radius);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - radius, center[2] + radius);
@@ -180,7 +181,7 @@ std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_circle(pos_t center, std:
 	}
 	return find_result;
 }
-std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, std::uint16_t radius, std::uint16_t height)const
+std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - radius, center[0] + radius);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - radius, center[2] + radius);
@@ -204,7 +205,7 @@ std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, st
 	}
 	return find_result;
 }
-std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, std::uint16_t x_width, std::uint16_t z_width, std::uint16_t y_height)const
+std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
@@ -222,4 +223,21 @@ std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, std:
 		find_result.insert(one_entity);
 	}
 	return find_result;
+}
+
+void list_2d_aoi::dump(std::ostream& out_debug) const
+{
+	out_debug << "x_aoi list is" << std::endl;
+	x_axis.dump(out_debug);
+	out_debug << "z_aoi list is" << std::endl;
+	auto result = z_axis.dump(out_debug);
+	for (auto one_item : result)
+	{
+		out_debug << "xz_interest_in for guid " << one_item->entity->guid << " begin" << std::endl;
+		for (auto one_guid : one_item->xz_interest_in)
+		{
+			out_debug << one_guid->guid << ", ";
+		}
+		out_debug << std::endl;
+	}
 }
