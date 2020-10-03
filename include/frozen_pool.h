@@ -7,16 +7,16 @@ class frozen_pool
 {
 private:
 	std::vector<T> data;
-	std::vector<std::uint32_t> avail_indexes;
-	std::uint32_t cur_avail_idx = 0;
-	std::uint32_t size;
+	std::vector<std::size_t> avail_indexes;
+	std::size_t cur_avail_idx = 0;
+	std::size_t size;
 public:
-	frozen_pool(std::uint32_t in_size)
+	frozen_pool(std::size_t in_size)
 	: data(in_size)
 	, avail_indexes(in_size)
 	, size(in_size)
 	{
-		for(std::uint32_t i = 0; i < size; i++)
+		for(std::size_t i = 0; i < size; i++)
 		{
 			avail_indexes[i] = i + 1;
 		}

@@ -1,7 +1,7 @@
 #include "list_aoi.h"
 #include "set_utility.h"
 #include <cmath>
-
+#include <iostream>
 
 list_2d_aoi::list_2d_aoi(std::uint32_t in_max_agent, pos_unit_t in_max_aoi_radius, pos_t in_border_min, pos_t in_border_max)
 : aoi_interface(in_max_agent, in_max_aoi_radius, in_border_min, in_border_max)
@@ -124,23 +124,41 @@ void list_2d_aoi::on_position_update(aoi_entity* cur_entity, pos_t new_pos)
 
 std::unordered_set<aoi_entity*> list_2d_aoi::update_all()
 {
+	auto temp_dirty = dirty_entities;
+	for (auto cur_entity : temp_dirty)
+	{
+		auto cur_node = ((axis_2d_nodes_for_entity*) (cur_entity->cacl_data));
+		for (auto one_entity : cur_node->xz_interested_by)
+		{
+			dirty_entities.insert(one_entity);
+		}
+	}
 	for(auto cur_entity: dirty_entities)
 	{
 		cur_entity->interested_by = cur_entity->force_interested_by;
 		cur_entity->interest_in = cur_entity->force_interest_in;
 	}
+
 	for(auto cur_entity: dirty_entities)
 	{
 		auto cur_node = ((axis_2d_nodes_for_entity*)(cur_entity->cacl_data));
 		for(auto one_entity: cur_node->xz_interest_in)
 		{
 			cur_entity->enter_by_pos(*one_entity);
+			//if (!cur_entity->enter_by_pos(*one_entity))
+			//{
+			//	std::cout << "fail to add enter for entity " << cur_entity->guid << " other guid " << one_entity->guid << std::endl;
+			//}
 		}
 	}
 
 	for(auto cur_entity: dirty_entities)
 	{
 		auto cur_node = ((axis_2d_nodes_for_entity*)(cur_entity->cacl_data));
+		if (!cur_node)
+		{
+			continue;
+		}
 		if(cur_node->is_leaving)
 		{
 			cur_node->is_leaving = false;
@@ -171,8 +189,8 @@ std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_
 	std::unordered_set<aoi_entity*> find_result;
 	for(auto one_entity:entity_result)
 	{
-		int32_t diff_x = center[0] - one_entity->pos[0];
-		int32_t diff_z = center[2] - one_entity->pos[2];
+		pos_unit_t diff_x = center[0] - one_entity->pos[0];
+		pos_unit_t diff_z = center[2] - one_entity->pos[2];
 		if((diff_x * diff_x + diff_z * diff_z) > radius * radius)
 		{
 			continue;
@@ -190,9 +208,9 @@ std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, po
 	std::unordered_set<aoi_entity*> find_result;
 	for(auto one_entity:entity_result)
 	{
-		int32_t diff_x = center[0] - one_entity->pos[0];
-		int32_t diff_y = center[1] - one_entity->pos[1];
-		int32_t diff_z = center[2] - one_entity->pos[2];
+		pos_unit_t diff_x = center[0] - one_entity->pos[0];
+		pos_unit_t diff_y = center[1] - one_entity->pos[1];
+		pos_unit_t diff_z = center[2] - one_entity->pos[2];
 		if((diff_x * diff_x + diff_z * diff_z) > radius * radius)
 		{
 			continue;
@@ -214,7 +232,7 @@ std::unordered_set<aoi_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_
 	std::unordered_set<aoi_entity*> find_result;
 	for(auto one_entity:entity_result)
 	{
-		int32_t diff_y = center[1] - one_entity->pos[1];
+		pos_unit_t diff_y = center[1] - one_entity->pos[1];
 
 		if(diff_y > y_height || diff_y < -y_height)
 		{
@@ -235,6 +253,12 @@ void list_2d_aoi::dump(std::ostream& out_debug) const
 	{
 		out_debug << "xz_interest_in for guid " << one_item->entity->guid << " begin" << std::endl;
 		for (auto one_guid : one_item->xz_interest_in)
+		{
+			out_debug << one_guid->guid << ", ";
+		}
+		out_debug << std::endl;
+		out_debug << "xz_interested_by for guid " << one_item->entity->guid << " begin" << std::endl;
+		for (auto one_guid : one_item->xz_interested_by)
 		{
 			out_debug << one_guid->guid << ", ";
 		}
