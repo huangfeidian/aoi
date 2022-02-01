@@ -26,7 +26,7 @@ struct list_node
 			out_debug << "anchor node with pos " << pos << std::endl;
 			return;
 		}
-		out_debug << "node for guid " << entity->guid << " node_type " << int(node_type) << " pos " << pos << std::endl;
+		out_debug << "node for guid " << entity->guid() << " node_type " << int(node_type) << " pos " << pos << std::endl;
 	}
 };
 
@@ -59,8 +59,8 @@ struct axis_2d_nodes_for_entity
 	bool is_leaving = false;
 	void set_entity(aoi_entity* cur_entity)
 	{
-		x_nodes.set_entity(cur_entity, cur_entity->pos[0], cur_entity->radius);
-		z_nodes.set_entity(cur_entity, cur_entity->pos[2], cur_entity->radius);
+		x_nodes.set_entity(cur_entity, cur_entity->pos()[0], cur_entity->radius());
+		z_nodes.set_entity(cur_entity, cur_entity->pos()[2], cur_entity->radius());
 		xz_interest_in.clear();
 		xz_interested_by.clear();
 		entity = cur_entity;
@@ -75,9 +75,9 @@ struct axis_2d_nodes_for_entity
 
 struct sweep_result
 {
-	std::unordered_set<aoi_entity*> left;
-	std::unordered_set<aoi_entity*> middle;
-	std::unordered_set<aoi_entity*> right;
+	std::vector<aoi_entity*> left;
+	std::vector<aoi_entity*> middle;
+	std::vector<aoi_entity*> right;
 	void clear()
 	{
 		left.clear();
@@ -85,17 +85,7 @@ struct sweep_result
 		right.clear();
 	}
 };
-struct move_result
-{
-	std::unordered_set<aoi_entity*> enter_entities;
-	std::unordered_set<aoi_entity*> leave_entities;
 
-	std::unordered_set<aoi_entity*> enter_notify_entities;
-	std::unordered_set<aoi_entity*> leave_notify_entities;
-	void clear();
-	void merge(const move_result& a, const move_result& b);
-
-};
 
 class axis_list
 {
@@ -111,7 +101,6 @@ private:
 	const pos_unit_t max_pos;
 	const std::uint16_t max_radius;
 	sweep_result sweep_buffer[3];
-	move_result update_info;
 	std::uint32_t dirty_count = 0;
 	void insert_before(list_node* next, list_node* cur);
 	void remove(list_node* cur);
@@ -129,6 +118,5 @@ public:
 	void update_entity_pos(axis_nodes_for_entity* entity_nodes, pos_unit_t offset);
 	void update_entity_radius(axis_nodes_for_entity* entity_nodes, pos_unit_t delta_radius);
 	std::unordered_set<aoi_entity*> entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const;
-	const move_result& get_update_info() const;
 	std::vector<axis_2d_nodes_for_entity*> dump(std::ostream& out_debug) const;
 };

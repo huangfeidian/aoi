@@ -1,3 +1,4 @@
+#pragma once
 #include "aoi_entity.h"
 #include "frozen_pool.h"
 
@@ -6,54 +7,31 @@
 #include <ostream>
 
 class aoi_interface;
-using aoi_callback_t = std::function<void(guid_t, const std::vector<guid_t>&, const std::vector<guid_t>&)>;
+
 class aoi_manager
 {
 public:
-	aoi_manager(aoi_interface* aoi_impl, std::uint32_t max_entity_size, pos_unit_t max_aoi_radius, pos_t min, pos_t max);
+	aoi_manager(aoi_interface* aoi_impl, aoi_idx_t max_entity_size, pos_unit_t max_aoi_radius, pos_t min, pos_t max);
 	~aoi_manager();
 
-	bool add_entity(guid_t guid, pos_unit_t radius, pos_unit_t height, pos_t pos, std::uint32_t flag, std::uint16_t max_interested);
-	bool remove_entity(guid_t guid);
-	bool change_entity_radius(guid_t guid, pos_unit_t radius);
-	bool change_entity_pos(guid_t guid, pos_t pos);
+	aoi_idx_t add_entity(guid_t guid, const aoi_controler& aoi_ctrl, const pos_t& pos, aoi_callback_t aoi_callback);
+	bool remove_entity(aoi_idx_t aoi_idx);
+	const aoi_entity* get_aoi_entity(aoi_idx_t aoi_idx) const;
+	bool change_entity_radius(aoi_idx_t aoi_idx, pos_unit_t radius);
+	bool change_entity_pos(aoi_idx_t aoi_idx, pos_t pos);
 	// 将guid_from 加入到guid_to的强制关注列表里
-	bool add_force_aoi(guid_t guid_from, guid_t guid_to);
+	bool add_force_aoi(aoi_idx_t aoi_idx_from, aoi_idx_t aoi_idx_to);
 	// 将guid_from 移除出guid_to 的强制关注列表
-	bool remove_force_aoi(guid_t guid_from, guid_t guid_to);
-	const std::unordered_set<guid_t>& interest_in(guid_t guid)const;
-	const std::unordered_set<guid_t>& interested_by(guid_t guid) const;
+	bool remove_force_aoi(aoi_idx_t aoi_idx_from, aoi_idx_t aoi_idx_to);
+	const std::vector<aoi_idx_t> & interest_in(aoi_idx_t aoi_idx)const;
+	std::vector<guid_t> interest_in_guids(aoi_idx_t aoi_idx)const;
+	const std::vector<aoi_idx_t>& interested_by(aoi_idx_t aoi_idx) const;
+	std::vector<guid_t> interested_by_guids(aoi_idx_t aoi_idx) const;
 	// 更新内部信息 返回所有有callback消息通知的entity guid 列表
 	// 只有在调用update之后 所有entity的aoi interested 才是最新的正确的值
 	// T 的类型应该能转换到aoi_callback_t 这里用模板是为了避免直接用aoi_callback_t时引发的虚函数开销
-	template <typename T>
-	std::vector<guid_t> update(T aoi_callback)
-	{
-		std::unordered_set<aoi_entity*> temp_result;
-		unordered_set_union(aoi_impl->update_all(), entities_removed, temp_result);
+	void update();
 
-
-		std::vector<guid_t> result;
-		result.reserve(temp_result.size());
-		std::unordered_set<guid_t> enter_guids;
-		std::unordered_set<guid_t> leave_guids;
-		for (auto one_entity : temp_result)
-		{
-			result.push_back(one_entity->guid);
-			enter_guids.clear();
-			leave_guids.clear();
-			one_entity->after_update(enter_guids, leave_guids);
-			aoi_callback(one_entity->guid, enter_guids, leave_guids);
-		}
-		temp_result = entities_removed;
-		for (auto one_entity : temp_result)
-		{
-			all_guids.erase(one_entity->guid);
-		}
-		entities_removed.clear();
-
-		return result;
-	}
 	bool is_in_border(const pos_t& pos) const;
 public:
 	// 获取平面区域内圆形范围内的entity列表
@@ -72,14 +50,17 @@ public:
 	std::vector<guid_t> entity_in_fan(pos_t center, pos_unit_t radius, float yaw, float yaw_range);
 	void dump(std::ostream& out_debug) const;
 private:
-	frozen_pool<aoi_entity> entity_pool;
-	std::unordered_set<aoi_entity*> entities_removed;
-	std::unordered_map<guid_t, aoi_entity*> all_guids;
+	aoi_idx_t request_entity_slot();
+	void renounce_entity_idx(aoi_idx_t aoi_idx);
+private:
+	std::vector<aoi_entity*> m_entities;
+	std::vector<aoi_idx_t> m_avail_slots;
+	std::unordered_set<aoi_idx_t> entities_removed;
 	aoi_interface* aoi_impl;
 	pos_t min;
 	pos_t max;
 	pos_unit_t max_aoi_radius;
-	std::uint32_t max_entity_size;
-	std::unordered_set<guid_t> invalid_result;// for invalid guid
+	aoi_idx_t max_entity_size;
+	std::vector<aoi_idx_t> m_invalid_result;
 
 };

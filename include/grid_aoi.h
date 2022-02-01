@@ -14,19 +14,19 @@ class grid_aoi: public aoi_interface
 		int grid_z = 0;
 	};
 public:
-	grid_aoi(std::uint32_t max_entity_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max, std::uint32_t grid_size,  std::uint32_t grid_blocks);
+	grid_aoi(aoi_idx_t max_entity_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max, std::uint32_t grid_size,  std::uint32_t grid_blocks);
 	~grid_aoi();
 	bool add_entity(aoi_entity* entity) override;
 	bool remove_entity(aoi_entity* entity) override;
 	void on_position_update(aoi_entity* entity, pos_t new_pos) override;
 	void on_radius_update(aoi_entity* entity, pos_unit_t new_radius) override;
-	std::unordered_set<aoi_entity*> update_all() override;
-	std::unordered_set<aoi_entity*> entity_in_circle(pos_t center, pos_unit_t radius) const override;
+	void update_all(const std::vector<aoi_entity*>& all_entities) override;
+	std::vector<aoi_entity*> entity_in_circle(pos_t center, pos_unit_t radius) const override;
 
-	std::unordered_set<aoi_entity*> entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height) const override;
-	std::unordered_set<aoi_entity*> entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width) const override;
+	std::vector<aoi_entity*> entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height) const override;
+	std::vector<aoi_entity*> entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width) const override;
 
-	std::unordered_set<aoi_entity*> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const override;
+	std::vector<aoi_entity*> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const override;
 	void dump(std::ostream& out_debug) const override;
 private:
 	void unlink(grid_entry* cur_entry);
@@ -36,17 +36,18 @@ public:
 	std::uint32_t grid_hash(const pos_t& pos) const;
 
 	template <typename T>
-	void filter_pos_entity_in_grid(int grid_x, int grid_z, const T& pred, std::unordered_set<aoi_entity*>& result) const
+	void filter_pos_entity_in_grid(int grid_x, int grid_z, const T& pred, std::vector<aoi_entity*>& result) const
 	{
-		auto cur_bucket_idx = computegridHash(grid_x, grid_z, grid_blocks);
+		auto cur_bucket_idx = computegridHash(grid_x, grid_z, grid_bucket_num);
 		auto temp_entry = grid_buckets[cur_bucket_idx].next;
 		while(temp_entry)
 		{
 			if(temp_entry->grid_x == grid_x && temp_entry->grid_z == grid_z)
 			{
-				if(pred(temp_entry->entity->pos))
+				if(pred(temp_entry->entity->pos()) && m_entity_byteset[temp_entry->entity->aoi_idx] == 0)
 				{
-					result.insert(temp_entry->entity);
+					result.push_back(temp_entry->entity);
+					m_entity_byteset[temp_entry->entity->aoi_idx] = 0;
 				}
 			}
 			temp_entry = temp_entry->next;
@@ -55,9 +56,9 @@ public:
 	}
 	
 	template <typename T>
-	std::unordered_set<aoi_entity*> filter_pos_entity_in_grids(int grid_x_min, int grid_z_min, int grid_x_max, int grid_z_max, const T& pred) const
+	std::vector<aoi_entity*> filter_pos_entity_in_grids(int grid_x_min, int grid_z_min, int grid_x_max, int grid_z_max, const T& pred) const
 	{
-		std::unordered_set<aoi_entity*> result;
+		std::vector<aoi_entity*> result;
 		for(int m = grid_x_min; m <= grid_x_max; m++)
 		{
 			for(int n = grid_z_min; n <= grid_z_max; n++)
@@ -65,11 +66,16 @@ public:
 				filter_pos_entity_in_grid(m, n, pred, result);
 			}
 		}
+		for (auto one_result : result)
+		{
+			m_entity_byteset[one_result->aoi_idx] = 0;
+		}
 		return result;
 	}
 private:
-	const std::uint32_t grid_blocks;
+	const std::uint32_t grid_bucket_num;
 	const std::uint32_t grid_size;
 	frozen_pool<grid_entry> entry_pool;
 	std::vector<grid_entry> grid_buckets;
+	mutable std::vector<std::uint8_t> m_entity_byteset;
 };
