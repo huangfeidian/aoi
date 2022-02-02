@@ -20,7 +20,7 @@ static bool is_in_fan(const pos_t& center, float yaw, float yaw_range, const pos
 	auto diff_x = cur[0] - center[0];
 	auto diff_z = cur[2] - center[2];
 
-	auto len = std::sqrtf(diff_x * diff_x + diff_z * diff_z);
+	auto len = std::sqrt(diff_x * diff_x + diff_z * diff_z);
 
 	auto cos_range = std::cos(yaw_range);
 	auto sin_yaw = std::sin(yaw);

@@ -36,6 +36,7 @@ namespace spiritsaway::aoi
 		void link(grid_entry* cur_entry, const pos_t& pos);
 		int cacl_grid_id(pos_unit_t pos) const;
 	public:
+		static std::uint32_t computegridHash(int grid_x, int grid_z, const std::uint32_t grid_bucket_num);
 		std::uint32_t grid_hash(const pos_t& pos) const;
 
 		template <typename T>

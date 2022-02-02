@@ -2,7 +2,7 @@
 #include <list_aoi.h>
 #include <grid_aoi.h>
 #include <brute_aoi.h>
-#include <set_utility.h>
+#include "set_utility.h"
 #include <random>
 #include <chrono>
 #include <iostream>
@@ -11,8 +11,17 @@
 #include "pretty_print.h"
 #include "set_utility.h"
 #include <nlohmann/json.hpp>
+#include <sstream>
 using json = nlohmann::json;
 using namespace spiritsaway::aoi;
+template<typename T>
+void clear_subvec(std::vector<T>& data)
+{
+	for(auto& one_vec: data)
+	{
+		one_vec.clear();
+	}
+}
 pos_t create_pos(pos_unit_t a, pos_unit_t b, pos_unit_t c)
 {
 	pos_t result;
@@ -350,7 +359,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 
 		return false;
 	}
-	aoi_results.swap(decltype(aoi_results)(mgrs.size()));
+	clear_subvec(aoi_results);
 	for (guid_t j = 0; j < entity_poses.size(); j++)
 	{
 		for (std::size_t i = 0; i < mgrs.size(); i++)
@@ -366,7 +375,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 
 			return false;
 		}
-		aoi_results.swap(decltype(aoi_results)(mgrs.size()));
+		clear_subvec(aoi_results);
 	}
 	return true;
 }
@@ -394,7 +403,7 @@ bool test_trace(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity
 			dump_aoi_mgrs(mgrs);
 			return false;
 		}
-		aoi_results.swap(decltype(aoi_results)(mgrs.size()));
+		clear_subvec(aoi_results);
 	}
 	return true;
 
@@ -425,7 +434,7 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 		return false;
 	}
 	std::cout << "test_move add pass" << std::endl;
-	aoi_results.swap(decltype(aoi_results)(mgrs.size()));
+	clear_subvec(aoi_results);
 
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
@@ -445,7 +454,7 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 			dump_aoi_mgrs(mgrs);
 			return false;
 		}
-		aoi_results.swap(decltype(aoi_results)(mgrs.size()));
+		clear_subvec(aoi_results);
 	}
 	return true;
 }
@@ -474,7 +483,7 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 		return false;
 	}
 	std::cout << "test_move add pass" << std::endl;
-	aoi_results.swap(decltype(aoi_results)(mgrs.size()));
+	clear_subvec(aoi_results);
 
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();

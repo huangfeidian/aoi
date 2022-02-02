@@ -1,7 +1,7 @@
 #include "grid_aoi.h"
-
+#include <cmath>
 using namespace spiritsaway::aoi;
-inline std::uint32_t computegridHash(int x, int y, const std::uint32_t mask)
+inline std::uint32_t grid_aoi::computegridHash(int x, int y, const std::uint32_t mask)
 {
 	const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
 	const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
@@ -29,7 +29,7 @@ grid_aoi::~grid_aoi()
 
 int grid_aoi::cacl_grid_id(pos_unit_t pos) const
 {
-	return int(std::floorf(pos / grid_size));
+	return int(std::floor(pos / grid_size));
 }
 
 std::uint32_t grid_aoi::grid_hash(const pos_t& pos) const

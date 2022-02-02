@@ -1,7 +1,6 @@
 #include "axis_list.h"
-#include "set_utility.h"
 #include <algorithm>
-
+#include <cmath>
 using namespace spiritsaway::aoi;
 
 axis_list::axis_list(std::uint32_t in_max_entity_count, pos_unit_t in_max_aoi_radius, pos_unit_t in_min_pos, pos_unit_t in_max_pos)
