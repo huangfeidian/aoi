@@ -1,6 +1,7 @@
 #include "aoi_entity.h"
 #include "set_utility.h"
 
+using namespace spiritsaway::aoi;
 bool aoi_entity::pos_in_aoi_radius(const aoi_entity& other) const
 {
     auto diff_x = m_pos[0] - other.m_pos[0];
@@ -10,7 +11,7 @@ bool aoi_entity::pos_in_aoi_radius(const aoi_entity& other) const
     {
         return false;
     }
-    if(m_aoi_ctrl.height)
+    if(m_aoi_ctrl.height > 0)
     {
         if(diff_y > m_aoi_ctrl.height || diff_y < -m_aoi_ctrl.height)
         {

@@ -10,6 +10,9 @@
 #include <fstream>
 #include "pretty_print.h"
 #include "set_utility.h"
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+using namespace spiritsaway::aoi;
 pos_t create_pos(pos_unit_t a, pos_unit_t b, pos_unit_t c)
 {
 	pos_t result;
@@ -17,6 +20,33 @@ pos_t create_pos(pos_unit_t a, pos_unit_t b, pos_unit_t c)
 	result[1] = b;
 	result[2] = c;
 	return result;
+}
+void dump_input(const std::vector<pos_t>& guid_positions, const std::vector<pos_unit_t>& guid_radius)
+{
+	std::ofstream file_os("input.json");
+	auto json_1 = json(guid_positions);
+	auto json_2 = json(guid_radius);
+	json json_3;
+	json_3.push_back(json_1);
+	json_3.push_back(json_2);
+	file_os << json_3.dump(4) << std::endl;
+	
+}
+
+void load_input(std::vector<pos_t>& guid_positions, std::vector<pos_unit_t>& guid_radius)
+{
+	std::ifstream file_is("input.json");
+	std::stringstream buffer;
+	buffer << file_is.rdbuf();
+	auto cur_file_content = buffer.str();
+	// std::cout<<"cur file_content is "<<cur_file_content<<std::endl;
+	if (!json::accept(cur_file_content))
+	{
+		return;
+	}
+	auto json_3 = json::parse(cur_file_content);
+	json_3[0].get_to(guid_positions);
+	json_3[1].get_to(guid_radius);
 }
 void report_cost(std::chrono::system_clock::time_point& start, std::chrono::system_clock::time_point& end, std::string reason, int line)
 {
@@ -234,11 +264,17 @@ void create_entity_poses(pos_t border_min, pos_t border_max, std::uint32_t max_e
 	int half_radius = int(max_radius) / 2;
 	poses = std::vector<pos_t>(max_entity_count);
 	radiuses = std::vector<pos_unit_t>(max_entity_count);
-	for (guid_t i = 0; i < max_entity_count; i++)
+	//for (guid_t i = 0; i < max_entity_count; i++)
+	//{
+	//	poses[i] = pos_t{ middle[0] + uniform_dist(e1) * x_scale, middle[1], middle[2] + uniform_dist(e1) * z_scale };
+	//	radiuses[i] = (i * 1234) % half_radius + 0.2f * half_radius;
+	//}
+	for (int i = 0; i < max_entity_count; i++)
 	{
-		poses[i] = pos_t{ middle[0] + uniform_dist(e1) * x_scale, middle[1], middle[2] + uniform_dist(e1) * z_scale };
-		radiuses[i] = (i * 1234) % half_radius + 0.2f * half_radius;
+		poses[i] = pos_t{ 1.0f * i, 0.0f, 0.0f};
+		radiuses[i] = 100.0f;
 	}
+
 }
 std::vector<std::pair<guid_t, pos_t>> create_entity_diffs(std::vector<pos_t>& entity_poses, const std::vector<pos_unit_t>& entity_radiues, float percentage, std::uint32_t case_num)
 {
@@ -325,7 +361,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 		}
 		if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
 		{
-			std::cout << "test_delete fail to check aoi result 2" << std::endl;
+			std::cout << "test_delete fail to check aoi result 2 j is " <<j<< std::endl;
 			dump_aoi_mgrs(mgrs);
 
 			return false;
@@ -473,7 +509,7 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 void test_traceback()
 {
 	std::uint32_t max_entity_size = 2;
-	float max_aoi_radius = 100.0f;
+	float max_aoi_radius = 120.0f;
 	float min_aoi_radius = 20.0f;
 	pos_t border_min{ -1000.0f, -1000.0f, -1000.0f };
 	pos_t border_max{ 1000.0f, 1000.0f, 1000.0f };
@@ -496,7 +532,7 @@ void test_traceback()
 int main()
 {
 	std::uint32_t max_entity_size = 1000;
-	float max_aoi_radius = 100.0f;
+	float max_aoi_radius = 120.0f;
 	float min_aoi_radius = 20.0f;
 	pos_t border_min{ -10000.0f, -10000.0f, -10000.0f };
 	pos_t border_max{ 10000.0f, 10000.0f, 10000.0f };
@@ -525,6 +561,7 @@ int main()
 	//	if (!test_add(total_aoi_mgrs, entity_poses, entity_radius))
 	//	{
 	//		std::cout << "fail in test_add" << std::endl;
+	//		dump_input(entity_poses, entity_radius);
 	//		return false;
 	//	}
 	//	std::cout << "finish test_add " << i << std::endl;
@@ -536,10 +573,12 @@ int main()
 	//	std::vector<pos_t> entity_poses;
 	//	std::vector<pos_unit_t> entity_radius;
 	//	create_entity_poses(border_min, border_max, max_entity_size, max_aoi_radius, entity_poses, entity_radius);
+	//	// load_input(entity_poses, entity_radius);
 	//	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
 	//	if (!test_delete(total_aoi_mgrs, entity_poses, entity_radius))
 	//	{
 	//		std::cout << "fail in test_delete" << std::endl;
+	//		dump_input(entity_poses, entity_radius);
 	//		return false;
 	//	}
 	//	std::cout << "finish test_delete " << i << std::endl;
@@ -562,6 +601,7 @@ int main()
 		std::cout << "finish test_move_speed " << i << std::endl;
 		destroy_aoi_mgrs(total_aoi_mgrs);
 	}
+	// 
 	//for (std::size_t i = 0; i < 10; i++)
 	//{
 	//	if (!test_trace())

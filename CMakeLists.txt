@@ -16,5 +16,4 @@ FILE(GLOB_RECURSE SRC_LISTS ${CMAKE_SOURCE_DIR}/src/*.cpp)
 
 add_library(${PROJECT_NAME} ${SRC_LISTS})
 
-add_executable(aoi_test ${CMAKE_SOURCE_DIR}/test/aoi_test.cpp)
-target_link_libraries(aoi_test PRIVATE ${PROJECT_NAME})
+add_subdirectory(test)

@@ -1,5 +1,6 @@
 #include "brute_aoi.h"
 
+using namespace spiritsaway::aoi;
 brute_aoi::brute_aoi(aoi_idx_t in_max_agent, pos_unit_t in_max_aoi_radius, pos_t in_border_min, pos_t in_border_max)
 : aoi_interface(in_max_agent, in_max_aoi_radius, in_border_min, in_border_max)
 {
@@ -33,18 +34,29 @@ void brute_aoi::on_radius_update(aoi_entity* entity, pos_unit_t new_radius)
 void brute_aoi::update_all(const std::vector<aoi_entity*>& all_entities)
 {
 	std::vector<aoi_entity*> temp_entities;
+	std::vector<std::uint8_t> diff_vec(max_agent + 2);
 	temp_entities.insert(temp_entities.end(), entities.begin(), entities.end());
 	
 	for(auto one_entity: temp_entities)
 	{
+		std::vector<aoi_entity*> cur_remain_interest_in;
 		for(auto other_entity: temp_entities)
 		{
 			if(one_entity->guid() == other_entity->guid())
 			{
 				continue;
 			}
-			one_entity->enter_by_pos(*other_entity);
+			if (!one_entity->can_pass_flag_check(*other_entity))
+			{
+				continue;
+			}
+			if (!one_entity->pos_in_aoi_radius(*other_entity))
+			{
+				continue;
+			}
+			cur_remain_interest_in.push_back(other_entity);
 		}
+		one_entity->update_by_pos(cur_remain_interest_in, all_entities, diff_vec);
 	}
 }
 std::vector<aoi_entity*> brute_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const

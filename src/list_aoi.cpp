@@ -2,13 +2,13 @@
 #include "set_utility.h"
 #include <cmath>
 #include <iostream>
-
+using namespace spiritsaway::aoi;
 list_2d_aoi::list_2d_aoi(aoi_idx_t in_max_agent, pos_unit_t in_max_aoi_radius, pos_t in_border_min, pos_t in_border_max)
 : aoi_interface(in_max_agent, in_max_aoi_radius, in_border_min, in_border_max)
-, x_axis(in_max_agent, in_max_aoi_radius, in_border_min[0], in_border_max[0])
-, z_axis(in_max_agent, in_max_aoi_radius, in_border_min[2], in_border_max[2])
-, nodes_buffer(in_max_agent)
-, m_entity_byteset(in_max_agent)
+, x_axis(in_max_agent + 1, in_max_aoi_radius, in_border_min[0], in_border_max[0])
+, z_axis(in_max_agent + 1, in_max_aoi_radius, in_border_min[2], in_border_max[2])
+, nodes_buffer(in_max_agent + 1)
+, m_entity_byteset(in_max_agent + 1)
 {
 
 }

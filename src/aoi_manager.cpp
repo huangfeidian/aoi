@@ -2,6 +2,7 @@
 #include "aoi_interface.h"
 #include <cmath>
 // 判断是否在扇形范围内
+using namespace spiritsaway::aoi;
 #define PI 3.14159f
 static bool is_in_fan(const pos_t& center, float yaw, float yaw_range, const pos_t& cur)
 {
@@ -41,18 +42,18 @@ static std::vector<guid_t> entity_vec_to_guid(const std::vector<aoi_entity*> ent
 	return result;
 }
 aoi_manager::aoi_manager(aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_size, pos_unit_t in_max_aoi_radius, pos_t in_min, pos_t in_max)
-: m_entities(in_max_entity_size, nullptr)
+: m_entities(in_max_entity_size + 1, nullptr)
 , aoi_impl(in_aoi_impl)
 , min(in_min)
 , max(in_max)
-, max_entity_size(in_max_entity_size)
 , max_aoi_radius(in_max_aoi_radius)
 {
-	m_avail_slots = std::vector<aoi_idx_t>(in_max_entity_size - 1);
+	m_avail_slots = std::vector<aoi_idx_t>(in_max_entity_size);
 	for (int i = 0; i < m_avail_slots.size(); i++)
 	{
-		m_avail_slots[in_max_entity_size - 1 - i] = i + 1;
+		m_avail_slots[i] = i + 1;
 	}
+	std::reverse(m_avail_slots.begin(), m_avail_slots.end());
 }
 aoi_manager::~aoi_manager()
 
@@ -361,10 +362,11 @@ aoi_idx_t aoi_manager::request_entity_slot()
 	}
 	auto result = m_avail_slots.back();
 	m_avail_slots.pop_back();
+
 	auto cur_entity = m_entities[result];
 	if (!cur_entity)
 	{
-		cur_entity = new aoi_entity(result, m_entities.size());
+		cur_entity = new aoi_entity(aoi_idx_t(result), aoi_idx_t(m_entities.size()));
 
 		m_entities[result] = cur_entity;
 	}

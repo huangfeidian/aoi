@@ -1,5 +1,6 @@
 #include "grid_aoi.h"
 
+using namespace spiritsaway::aoi;
 inline std::uint32_t computegridHash(int x, int y, const std::uint32_t mask)
 {
 	const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
@@ -13,10 +14,10 @@ inline std::uint32_t computegridHash(int x, int y, const std::uint32_t mask)
 grid_aoi::grid_aoi(aoi_idx_t max_entity_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max, std::uint32_t in_grid_size,  std::uint32_t in_grid_blocks)
 : aoi_interface(max_entity_size, max_aoi_radius, border_min, border_max)
 , grid_size(in_grid_size)
-, entry_pool(max_entity_size)
+, entry_pool(max_entity_size + 1)
 , grid_bucket_num(in_grid_blocks)
 , grid_buckets(in_grid_blocks)
-, m_entity_byteset(max_entity_size, 0)
+, m_entity_byteset(max_entity_size + 1, 0)
 {
 
 }
@@ -133,8 +134,10 @@ void grid_aoi::update_all(const std::vector<aoi_entity*>& all_entities)
 		{
 			auto one_entity = temp_entry->entity;
 			auto& one_entity_radius= one_entity->aoi_ctrl().radius;
-			if(one_entity_radius == 0 || one_entity->has_flag(aoi_flag::forbid_interest_in))
+			if(one_entity->has_flag(aoi_flag::forbid_interest_in))
 			{
+				temp_entry = temp_entry->next;
+
 				continue;
 			}
 			temp_aoi_result.clear();
