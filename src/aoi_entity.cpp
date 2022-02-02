@@ -1,5 +1,4 @@
 #include "aoi_entity.h"
-#include "set_utility.h"
 
 using namespace spiritsaway::aoi;
 bool aoi_entity::pos_in_aoi_radius(const aoi_entity& other) const

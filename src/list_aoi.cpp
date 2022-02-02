@@ -1,5 +1,4 @@
 #include "list_aoi.h"
-#include "set_utility.h"
 #include <cmath>
 #include <iostream>
 using namespace spiritsaway::aoi;
