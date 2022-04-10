@@ -12,7 +12,7 @@ namespace spiritsaway::aoi
 
 	using guid_t = std::uint64_t;
 	using aoi_idx_t = std::uint16_t; // aoi entity 的索引 0代表非法
-	using pos_unit_t = float;
+	using pos_unit_t = double;
 	using pos_t = std::array<pos_unit_t, 3>;
 	using aoi_callback_t = std::function<void(guid_t, guid_t, bool)>; // self_guid other_guid, is_enter
 	enum class aoi_flag :std::uint8_t

@@ -97,12 +97,12 @@ namespace spiritsaway::aoi
 		list_node tail;
 		std::vector<list_node*> anchors;
 		std::vector<list_node> anchor_buffer;
-		std::vector<std::int32_t> anchor_poses;
+		std::vector<pos_unit_t> anchor_poses;
 		const std::uint32_t node_per_anchor;
 		const std::uint32_t max_entity_count;
 		const pos_unit_t min_pos;
 		const pos_unit_t max_pos;
-		const std::uint16_t max_radius;
+		const pos_unit_t max_radius;
 		sweep_result sweep_buffer[3];
 		std::uint32_t dirty_count = 0;
 		void insert_before(list_node* next, list_node* cur);
