@@ -241,6 +241,25 @@ const std::vector<aoi_idx_t>& aoi_manager::interest_in(aoi_idx_t aoi_idx)const
 	}
 	return cur_entity->interest_in();
 }
+std::vector<guid_t> aoi_manager::interest_in_guids(aoi_idx_t aoi_idx) const
+{
+	if (aoi_idx >= m_entities.size())
+	{
+		return {};
+	}
+	auto cur_entity = m_entities[aoi_idx];
+	if (!cur_entity)
+	{
+		return {};
+	}
+	auto& pre_aoi_idxes = cur_entity->interest_in();
+	std::vector<guid_t> result(pre_aoi_idxes.size());
+	for(int i = 0; i< pre_aoi_idxes.size(); i++)
+	{
+		result[i] = m_entities[pre_aoi_idxes[i]]->guid();
+	}
+	return result;
+}
 const std::vector<aoi_idx_t>& aoi_manager::interested_by(aoi_idx_t aoi_idx)const
 {
 	if (aoi_idx >= m_entities.size())
@@ -254,7 +273,25 @@ const std::vector<aoi_idx_t>& aoi_manager::interested_by(aoi_idx_t aoi_idx)const
 	}
 	return cur_entity->interested_by();
 }
-
+std::vector<guid_t> aoi_manager::interested_by_guids(aoi_idx_t aoi_idx) const
+{
+	if (aoi_idx >= m_entities.size())
+	{
+		return {};
+	}
+	auto cur_entity = m_entities[aoi_idx];
+	if (!cur_entity)
+	{
+		return {};
+	}
+	auto& pre_aoi_idxes = cur_entity->interested_by();
+	std::vector<guid_t> result(pre_aoi_idxes.size());
+	for(int i = 0; i< pre_aoi_idxes.size(); i++)
+	{
+		result[i] = m_entities[pre_aoi_idxes[i]]->guid();
+	}
+	return result;
+}
 std::vector<guid_t> aoi_manager::entity_in_circle(pos_t center, pos_unit_t radius)
 {
 	if(!aoi_impl)
