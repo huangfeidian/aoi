@@ -226,7 +226,7 @@ bool aoi_manager::remove_force_aoi(aoi_idx_t from, aoi_idx_t to)
 	{
 		return false;
 	}
-	return from_ent->enter_by_force(*to_ent);
+	return from_ent->leave_by_force(*to_ent);
 }
 const std::vector<aoi_idx_t>& aoi_manager::interest_in(aoi_idx_t aoi_idx)const
 {
