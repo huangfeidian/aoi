@@ -221,9 +221,9 @@ void axis_list::move_backward(list_node* cur, sweep_result& visited_nodes, std::
 	insert_before(prev->next, cur);
 }
 
-std::unordered_set<aoi_entity*> axis_list::entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const
+std::unordered_set<aoi_radius_entity*> axis_list::entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const
 {
-	std::unordered_set<aoi_entity*> result;
+	std::unordered_set<aoi_radius_entity*> result;
 	auto boundary_left = find_boundary(std::max(min_pos + 2, range_begin), true);
 	auto boundary_right = find_boundary(std::min(max_pos - 2, range_end), false);
 	while(boundary_left != boundary_right)
@@ -344,7 +344,7 @@ void axis_list::update_entity_radius(axis_nodes_for_entity* entity_nodes, pos_un
 
 
 
-bool axis_2d_nodes_for_entity::in_range(const aoi_entity* other_entity)
+bool axis_2d_nodes_for_entity::in_range(const aoi_radius_entity* other_entity)
 {
 	auto other_x = other_entity->pos()[0];
 	auto other_z = other_entity->pos()[2];
@@ -361,13 +361,13 @@ bool axis_2d_nodes_for_entity::in_range(const aoi_entity* other_entity)
 	}
 	return true;
 }
-bool axis_2d_nodes_for_entity::enter(aoi_entity* other_entity)
+bool axis_2d_nodes_for_entity::enter(aoi_radius_entity* other_entity)
 {
 	if(!in_range(other_entity))
 	{
 		return false;
 	}
-	if(entity->aoi_ctrl().max_interest_in && xz_interest_in.size() >= 2 * entity->aoi_ctrl().max_interest_in)
+	if(entity->aoi_radius_ctrl().max_interest_in && xz_interest_in.size() >= 2 * entity->aoi_radius_ctrl().max_interest_in)
 	{
 		return false;
 	}
@@ -386,7 +386,7 @@ bool axis_2d_nodes_for_entity::enter(aoi_entity* other_entity)
 	}
 	
 }
-bool axis_2d_nodes_for_entity::leave(aoi_entity* other_entity)
+bool axis_2d_nodes_for_entity::leave(aoi_radius_entity* other_entity)
 {
 	if(xz_interest_in.erase(other_entity))
 	{

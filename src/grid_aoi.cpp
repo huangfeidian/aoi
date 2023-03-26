@@ -65,7 +65,7 @@ void grid_aoi::unlink(grid_entry* cur_entry)
 	cur_entry->prev = nullptr;
 	cur_entry->next = nullptr;
 }
-bool grid_aoi::add_entity(aoi_entity* entity)
+bool grid_aoi::add_entity(aoi_radius_entity* entity)
 {
 	if(entity->cacl_data)
 	{
@@ -82,7 +82,7 @@ bool grid_aoi::add_entity(aoi_entity* entity)
 
 	return true;
 }
-bool grid_aoi::remove_entity(aoi_entity* entity)
+bool grid_aoi::remove_entity(aoi_radius_entity* entity)
 {
 	if(!entity->cacl_data)
 	{
@@ -96,7 +96,7 @@ bool grid_aoi::remove_entity(aoi_entity* entity)
 
 }
 
-void grid_aoi::on_position_update(aoi_entity* entity, pos_t new_pos)
+void grid_aoi::on_position_update(aoi_radius_entity* entity, pos_t new_pos)
 {
 	if(!entity->cacl_data)
 	{
@@ -114,26 +114,26 @@ void grid_aoi::on_position_update(aoi_entity* entity, pos_t new_pos)
 	link(cur_entry, new_pos);
 }
 
-void grid_aoi::on_radius_update(aoi_entity* entity, pos_unit_t new_radius)
+void grid_aoi::on_radius_update(aoi_radius_entity* entity, pos_unit_t new_radius)
 {
 	entity->set_radius(new_radius);
 	return;
 }
 
 
-void grid_aoi::update_all(const std::vector<aoi_entity*>& all_entities)
+void grid_aoi::update_all(const std::vector<aoi_radius_entity*>& all_entities)
 {
 
 
 	// 计算所有的因为radius建立的interested
-	std::vector<aoi_entity*> temp_aoi_result;
+	std::vector<aoi_radius_entity*> temp_aoi_result;
 	for(std::size_t i = 0; i<grid_bucket_num; i++)
 	{
 		auto temp_entry = grid_buckets[i].next;
 		while(temp_entry)
 		{
 			auto one_entity = temp_entry->entity;
-			auto& one_entity_radius= one_entity->aoi_ctrl().radius;
+			auto& one_entity_radius= one_entity->aoi_radius_ctrl().radius;
 			if(one_entity->has_flag(aoi_flag::forbid_interest_in))
 			{
 				temp_entry = temp_entry->next;
@@ -174,7 +174,7 @@ void grid_aoi::update_all(const std::vector<aoi_entity*>& all_entities)
 
 }
 
-std::vector<aoi_entity*> grid_aoi::entity_in_circle(pos_t center, pos_unit_t radius) const
+std::vector<aoi_radius_entity*> grid_aoi::entity_in_circle(pos_t center, pos_unit_t radius) const
 {
 	int grid_x_min = cacl_grid_id(center[0] - radius);
 	int grid_z_min =  cacl_grid_id(center[2] - radius);
@@ -191,7 +191,7 @@ std::vector<aoi_entity*> grid_aoi::entity_in_circle(pos_t center, pos_unit_t rad
 	return filter_pos_entity_in_grids(grid_x_min, grid_z_min, grid_x_max, grid_z_max, filter_lambda);
 
 }
-std::vector<aoi_entity*> grid_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height) const
+std::vector<aoi_radius_entity*> grid_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height) const
 {
 	int grid_x_min = cacl_grid_id(center[0] - radius);
 	int grid_z_min =  cacl_grid_id(center[2] - radius);
@@ -209,7 +209,7 @@ std::vector<aoi_entity*> grid_aoi::entity_in_cylinder(pos_t center, pos_unit_t r
 
 }
 
-std::vector<aoi_entity*> grid_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width) const
+std::vector<aoi_radius_entity*> grid_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width) const
 {
 	int grid_x_min = cacl_grid_id(center[0] - x_width);
 	int grid_z_min =  cacl_grid_id(center[2] - z_width);
@@ -224,7 +224,7 @@ std::vector<aoi_entity*> grid_aoi::entity_in_rectangle(pos_t center, pos_unit_t 
 	return filter_pos_entity_in_grids(grid_x_min, grid_z_min, grid_x_max, grid_z_max, filter_lambda);
 }
 
-std::vector<aoi_entity*> grid_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const
+std::vector<aoi_radius_entity*> grid_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const
 {
 	int grid_x_min = cacl_grid_id(center[0] - x_width);
 	int grid_z_min =  cacl_grid_id(center[2] - z_width);

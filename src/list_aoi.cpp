@@ -11,7 +11,7 @@ list_2d_aoi::list_2d_aoi(aoi_idx_t in_max_agent, pos_unit_t in_max_aoi_radius, p
 {
 
 }
-bool list_2d_aoi::add_entity(aoi_entity* cur_entity)
+bool list_2d_aoi::add_entity(aoi_radius_entity* cur_entity)
 {
 	if(cur_entity->cacl_data)
 	{
@@ -32,7 +32,7 @@ bool list_2d_aoi::add_entity(aoi_entity* cur_entity)
 	return true;
 }
 
-bool list_2d_aoi::remove_entity(aoi_entity* cur_entity)
+bool list_2d_aoi::remove_entity(aoi_radius_entity* cur_entity)
 {
 	auto cur_nodes = (axis_2d_nodes_for_entity*)(cur_entity->cacl_data);
 	if(!cur_nodes)
@@ -48,7 +48,7 @@ bool list_2d_aoi::remove_entity(aoi_entity* cur_entity)
 	return true;
 }
 
-void list_2d_aoi::on_radius_update(aoi_entity* cur_entity, pos_unit_t radius)
+void list_2d_aoi::on_radius_update(aoi_radius_entity* cur_entity, pos_unit_t radius)
 {
 	auto delta_radius = (int)(cur_entity->radius()) - radius;
 	cur_entity->set_radius(radius);
@@ -60,7 +60,7 @@ void list_2d_aoi::on_radius_update(aoi_entity* cur_entity, pos_unit_t radius)
 
 }
 
-void list_2d_aoi::on_position_update(aoi_entity* cur_entity, pos_t new_pos)
+void list_2d_aoi::on_position_update(aoi_radius_entity* cur_entity, pos_t new_pos)
 {
 	auto cur_nodes = (axis_2d_nodes_for_entity*)(cur_entity->cacl_data);
 	auto x_nodes = &(cur_nodes->x_nodes);
@@ -72,12 +72,12 @@ void list_2d_aoi::on_position_update(aoi_entity* cur_entity, pos_t new_pos)
 	
 }
 
-void list_2d_aoi::update_all(const std::vector<aoi_entity*>& all_entities)
+void list_2d_aoi::update_all(const std::vector<aoi_radius_entity*>& all_entities)
 {
 
 }
 
-std::vector<aoi_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const
+std::vector<aoi_radius_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
@@ -89,7 +89,7 @@ std::vector<aoi_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, pos_unit
 	{
 		m_entity_byteset[one_ent->aoi_idx]++;
 	}
-	std::vector<aoi_entity*> entity_result;
+	std::vector<aoi_radius_entity*> entity_result;
 	entity_result.reserve(std::min(axis_x_result.size(), axis_z_result.size()));
 	for (auto one_ent : axis_x_result)
 	{
@@ -105,11 +105,11 @@ std::vector<aoi_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, pos_unit
 	}
 	return entity_result;
 }
-std::vector<aoi_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_unit_t radius)const
+std::vector<aoi_radius_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_unit_t radius)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - radius, center[0] + radius);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - radius, center[2] + radius);
-	std::vector<aoi_entity*> entity_result;
+	std::vector<aoi_radius_entity*> entity_result;
 	entity_result.reserve(std::min(axis_x_result.size(), axis_z_result.size()));
 	for (auto one_ent : axis_x_result)
 	{
@@ -123,7 +123,7 @@ std::vector<aoi_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_unit_t 
 	{
 		m_entity_byteset[one_ent->aoi_idx] = 0;
 	};
-	std::vector<aoi_entity*> find_result;
+	std::vector<aoi_radius_entity*> find_result;
 	for(auto one_entity:entity_result)
 	{
 		pos_unit_t diff_x = center[0] - one_entity->pos()[0];
@@ -136,11 +136,11 @@ std::vector<aoi_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_unit_t 
 	}
 	return find_result;
 }
-std::vector<aoi_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const
+std::vector<aoi_radius_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - radius, center[0] + radius);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - radius, center[2] + radius);
-	std::vector<aoi_entity*> entity_result;
+	std::vector<aoi_radius_entity*> entity_result;
 	entity_result.reserve(std::min(axis_x_result.size(), axis_z_result.size()));
 	for (auto one_ent : axis_x_result)
 	{
@@ -154,7 +154,7 @@ std::vector<aoi_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_unit_
 	{
 		m_entity_byteset[one_ent->aoi_idx] = 0;
 	};
-	std::vector<aoi_entity*> find_result;
+	std::vector<aoi_radius_entity*> find_result;
 	for(auto one_entity:entity_result)
 	{
 		pos_unit_t diff_x = center[0] - one_entity->pos()[0];
@@ -172,11 +172,11 @@ std::vector<aoi_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_unit_
 	}
 	return find_result;
 }
-std::vector<aoi_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
+std::vector<aoi_radius_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
 {
 	auto axis_x_result = x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
 	auto axis_z_result = z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
-	std::vector<aoi_entity*> entity_result;
+	std::vector<aoi_radius_entity*> entity_result;
 	entity_result.reserve(std::min(axis_x_result.size(), axis_z_result.size()));
 	for (auto one_ent : axis_x_result)
 	{
@@ -190,7 +190,7 @@ std::vector<aoi_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_unit_t 
 	{
 		m_entity_byteset[one_ent->aoi_idx] = 0;
 	};
-	std::vector<aoi_entity*> find_result;
+	std::vector<aoi_radius_entity*> find_result;
 
 	for(auto one_entity:entity_result)
 	{

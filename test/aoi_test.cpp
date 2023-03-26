@@ -315,14 +315,14 @@ bool test_add(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_p
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_controler cur_aoi_ctrl;
+	aoi_controler cur_aoi_radius_ctrl;
 	for (std::size_t i = 0; i< mgrs.size(); i++)
 	{
 		auto one_mgr = mgrs[i];
 		for (guid_t j = 0; j < entity_poses.size(); j++)
 		{
-			cur_aoi_ctrl.radius = entity_radiues[j];
-			one_mgr->add_entity(j, cur_aoi_ctrl, entity_poses[j], result_lambda(aoi_results, i));
+			cur_aoi_radius_ctrl.radius = entity_radiues[j];
+			one_mgr->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i));
 		}
 		report_cost(start, end, "add entity for aoi_mgr " + std::to_string(i), __LINE__);
 
@@ -339,15 +339,15 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_controler cur_aoi_ctrl;
+	aoi_controler cur_aoi_radius_ctrl;
 
 	for (std::size_t i = 0; i < mgrs.size(); i++)
 	{
 		auto one_mgr = mgrs[i];
 		for (guid_t j = 0; j < entity_poses.size(); j++)
 		{
-			cur_aoi_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(one_mgr->add_entity(j, cur_aoi_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			cur_aoi_radius_ctrl.radius = entity_radiues[j];
+			aoi_entity_idxes[i].push_back(one_mgr->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
 		}
 
 		one_mgr->update();
@@ -388,13 +388,13 @@ bool test_trace(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity
 	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_controler cur_aoi_ctrl;
+	aoi_controler cur_aoi_radius_ctrl;
 	for (guid_t j = 0; j < entity_poses.size(); j++)
 	{
 		for (std::size_t i = 0; i < mgrs.size(); i++)
 		{
-			cur_aoi_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			cur_aoi_radius_ctrl.radius = entity_radiues[j];
+			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
 
 		}
 		if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
@@ -415,15 +415,15 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{ mgrs.size() };
 	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
 
-	aoi_controler cur_aoi_ctrl;
+	aoi_controler cur_aoi_radius_ctrl;
 
 	for (std::size_t i = 0; i< mgrs.size(); i++)
 	{
 		auto one_mgr = mgrs[i];
 		for (std::size_t j = 0; j < entity_poses.size(); j++)
 		{
-			cur_aoi_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			cur_aoi_radius_ctrl.radius = entity_radiues[j];
+			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
 		}
 		one_mgr->update();
 	}
@@ -464,15 +464,15 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{ mgrs.size() };
 	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
 
-	aoi_controler cur_aoi_ctrl;
+	aoi_controler cur_aoi_radius_ctrl;
 
 	for (std::size_t i = 0; i < mgrs.size(); i++)
 	{
 		auto one_mgr = mgrs[i];
 		for (std::size_t j = 0; j < entity_poses.size(); j++)
 		{
-			cur_aoi_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			cur_aoi_radius_ctrl.radius = entity_radiues[j];
+			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
 		}
 		one_mgr->update();
 	}
