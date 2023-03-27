@@ -73,18 +73,18 @@ namespace spiritsaway::aoi
 	class aoi_radius_entity
 	{
 	public:
+		friend class aoi_pos_entity;
 		const aoi_radius_idx m_radius_idx; // 在aoi系统里的唯一标识符
-		// 这个是aoi计算器所需的数据 只在计算器内部使用
-		void* cacl_data = nullptr;
+
 
 
 	private:
 		
-		std::vector<aoi_pos_idx> m_interest_in;// 当前进入自己aoi半径的entity guid 集合
+		std::unordered_map<aoi_pos_idx, aoi_pos_entity*> m_interest_in;// 当前进入自己aoi半径的entity guid 集合
 		
 
 
-		std::vector<aoi_pos_idx> m_force_interest_in;// 忽略半径强制加入到当前entity aoi列表的guid
+		std::unordered_map<aoi_pos_idx, aoi_pos_entity*> m_force_interest_in;// 忽略半径强制加入到当前entity aoi列表的guid
 		std::vector<std::uint8_t> interest_in_bitset; // bitmap 
 		
 		aoi_radius_controler m_aoi_radius_ctrl;
@@ -96,12 +96,12 @@ namespace spiritsaway::aoi
 		{
 			return m_radius_idx;
 		}
-		inline const std::vector<aoi_pos_idx>& interest_in() const
+		inline const std::unordered_map<aoi_pos_idx, aoi_pos_entity*>& interest_in() const
 		{
 			return m_interest_in;
 		}
 		
-		inline const std::vector<aoi_pos_idx>& force_interest_in() const
+		inline const std::unordered_map<aoi_pos_idx, aoi_pos_entity*>& force_interest_in() const
 		{
 			return m_force_interest_in;
 		}
@@ -123,8 +123,7 @@ namespace spiritsaway::aoi
 		{
 
 		}
-		// 判断是否有特定标志位
-		const aoi_pos_entity& owner() const
+		aoi_pos_entity& owner() 
 		{
 			return *m_owner;
 		}
@@ -132,6 +131,7 @@ namespace spiritsaway::aoi
 		{
 
 		}
+		bool check_height(pos_unit_t diff_height) const;
 		
 		const aoi_radius_controler& aoi_radius_ctrl() const
 		{
@@ -147,25 +147,27 @@ namespace spiritsaway::aoi
 			auto bit_offset = other_aoi_idx.value % 8;
 			return (interest_in_bitset[byte_offset] & (1 << bit_offset));
 		}
-		inline void set_interest_in(const aoi_pos_idx other_aoi_idx)
+		inline void set_interest_in(aoi_pos_entity* other)
 		{
+			auto other_aoi_idx = other->pos_idx();
 			auto byte_offset = other_aoi_idx.value / 8;
 			auto bit_offset = other_aoi_idx.value % 8;
 			interest_in_bitset[byte_offset] |= (1 << bit_offset);
-			m_interest_in.push_back(other_aoi_idx);
+			m_interest_in[other_aoi_idx] = other;
 		}
-		inline void remove_interest_in(const aoi_pos_idx other_aoi_idx)
+		inline void remove_interest_in(aoi_pos_entity* other)
 		{
+			auto other_aoi_idx = other->pos_idx();
 			auto byte_offset = other_aoi_idx.value / 8;
 			auto bit_offset = other_aoi_idx.value % 8;
 			interest_in_bitset[byte_offset] ^= (1 << bit_offset);
-			remove_in_vec(m_interest_in, other_aoi_idx);
+			m_interest_in.erase(other_aoi_idx);
 		}
 		
 
 		// 判断能否加入到aoi
 		bool pos_in_aoi_radius(const aoi_pos_entity & other) const;
-		bool can_pass_flag_check(const aoi_pos_entity& other) const;
+		bool check_flag(const aoi_pos_entity& other) const;
 		bool can_add_enter(const aoi_pos_entity& other, bool ignore_dist = true, bool force_add = false) const;
 		bool enter_by_pos(aoi_pos_entity& other, bool ignore_dist = false);
 		void enter_impl(aoi_pos_entity& other);
@@ -191,12 +193,16 @@ namespace spiritsaway::aoi
 		guid_t m_guid;
 		const aoi_pos_idx m_pos_idx;
 		pos_t m_pos;// 自己的位置
-		std::vector<aoi_radius_idx> m_interested_by;// 当前自己进入了那些entity的aoi 的guid集合
+		std::unordered_set<aoi_radius_idx> m_interested_by;// 当前自己进入了那些entity的aoi 的guid集合
 		std::vector<std::uint8_t> interested_by_bitset;
-		std::vector<aoi_radius_idx> m_force_interested_by;// 因为强制aoi而进入的其他entity的guid 集合
+		std::vector<std::uint8_t> force_interested_by_bitset;
+		std::unordered_set<aoi_radius_idx> m_force_interested_by;// 因为强制aoi而进入的其他entity的guid 集合
 		std::vector<aoi_radius_entity*> m_radius_entities; // 注册在当前pos上的所有radius radius从大到小排序
 		std::uint64_t m_interested_by_flag;// 自己能被哪些flag的radius关注
 	public:
+		// 这个是aoi计算器所需的数据 只在计算器内部使用
+		void* cacl_data = nullptr;
+
 		aoi_pos_entity(aoi_pos_idx in_pos_idx, aoi_idx_t max_ent_sz)
 			: interested_by_bitset(max_ent_sz/8 + 1)
 			, m_pos_idx(in_pos_idx)
@@ -207,11 +213,15 @@ namespace spiritsaway::aoi
 		{
 			return m_pos;
 		}
+		void set_pos(const pos_t& new_pos)
+		{
+			m_pos = new_pos;
+		}
 		aoi_pos_idx pos_idx() const
 		{
 			return m_pos_idx;
 		}
-		inline const std::vector<aoi_radius_idx>& interested_by() const
+		inline const std::unordered_set<aoi_radius_idx>& interested_by() const
 		{
 			return m_interested_by;
 		}
@@ -226,16 +236,16 @@ namespace spiritsaway::aoi
 			auto byte_offset = other_aoi_idx.value / 8;
 			auto bit_offset = other_aoi_idx.value % 8;
 			interested_by_bitset[byte_offset] |= (1 << bit_offset);
-			m_interested_by.push_back(other_aoi_idx);
+			m_interested_by.insert(other_aoi_idx);
 		}
 		inline void remove_interested_by(const aoi_radius_idx other_aoi_idx)
 		{
 			auto byte_offset = other_aoi_idx.value / 8;
 			auto bit_offset = other_aoi_idx.value % 8;
 			interested_by_bitset[byte_offset] ^= (1 << bit_offset);
-			remove_in_vec(m_interested_by, other_aoi_idx);
+			m_interested_by.erase(other_aoi_idx);
 		}
-		inline const std::vector<aoi_radius_idx>& force_interested_by() const
+		inline const std::unordered_set<aoi_radius_idx>& force_interested_by() const
 		{
 			return m_force_interested_by;
 		}
@@ -243,6 +253,7 @@ namespace spiritsaway::aoi
 		{
 			return m_guid;
 		}
+		pos_unit_t max_radius() const;
 		std::uint64_t interested_by_flag() const
 		{
 			return m_interested_by_flag;
@@ -252,6 +263,9 @@ namespace spiritsaway::aoi
 		void activate(const pos_t& in_pos, std::uint64_t in_interested_by_flag, guid_t in_guid);
 		void deactivate();
 		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl, const aoi_callback_t aoi_cb);
+
+		void check_add(aoi_pos_entity* other);
+		void check_remove();
 
 		aoi_radius_entity* remove_radius_entity(aoi_radius_idx cur_radius_idx);
 	};

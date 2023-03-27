@@ -371,7 +371,7 @@ bool axis_2d_nodes_for_entity::enter(aoi_radius_entity* other_entity)
 	{
 		return false;
 	}
-	if(!entity->can_pass_flag_check(*other_entity))
+	if(!entity->check_flag(*other_entity))
 	{
 		return false;
 	}

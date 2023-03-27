@@ -197,13 +197,13 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 	{
 		return false;
 	}
-	if (m_pos_entities_removed.find(radius_idx.value) != m_pos_entities_removed.end())
+	if (m_radius_entities_removed.find(radius_idx.value) != m_radius_entities_removed.end())
 	{
 		return false;
 	}
 	aoi_impl->remove_radius_entity(cur_entity);
 
-
+	cur_entity->owner().remove_radius_entity(radius_idx);
 	cur_entity->deactivate();
 
 	m_radius_entities_removed.insert(radius_idx.value);
@@ -442,7 +442,7 @@ void aoi_manager::renounce_pos_entity_idx(aoi_pos_idx pos_idx)
 
 void aoi_manager::update()
 {
-	aoi_impl->update_all(m_pos_entities);
+	aoi_impl->update_all();
 	for (auto one_idx : m_pos_entities_removed)
 	{
 		// 更新完成之后才释放期间remove的entity idx 避免一帧内出现添加后删除 或者删除后添加的情况

@@ -11,18 +11,28 @@ brute_aoi::~brute_aoi()
 
 }
 
-bool brute_aoi::add_entity(aoi_radius_entity* entity)
+bool brute_aoi::add_radius_entity(aoi_radius_entity* entity)
 {
-	entities.insert(entity);
 	return true;
 }
-bool brute_aoi::remove_entity(aoi_radius_entity* entity)
+bool brute_aoi::remove_radius_entity(aoi_radius_entity* entity)
 {
-	entities.erase(entity);
 	return true;
 }
 
-void brute_aoi::on_position_update(aoi_radius_entity* entity, pos_t new_pos)
+bool brute_aoi::add_pos_entity(aoi_pos_entity* entity)
+{
+	m_pos_entities.insert(entity);
+	return true;
+}
+bool brute_aoi::remove_pos_entity(aoi_pos_entity* entity)
+{
+	m_pos_entities.erase(entity);
+	return true;
+}
+
+
+void brute_aoi::on_position_update(aoi_pos_entity* entity, pos_t new_pos)
 {
 	entity->set_pos(new_pos);
 }
@@ -31,38 +41,28 @@ void brute_aoi::on_radius_update(aoi_radius_entity* entity, pos_unit_t new_radiu
 {
 	entity->set_radius(new_radius);
 }
-void brute_aoi::update_all(const std::vector<aoi_radius_entity*>& all_entities)
+void brute_aoi::update_all()
 {
-	std::vector<aoi_radius_entity*> temp_entities;
+	std::vector<aoi_pos_entity*> temp_entities;
 	std::vector<std::uint8_t> diff_vec(max_agent + 2);
-	temp_entities.insert(temp_entities.end(), entities.begin(), entities.end());
+	temp_entities.insert(temp_entities.end(), m_pos_entities.begin(), m_pos_entities.end());
 	
 	for(auto one_entity: temp_entities)
 	{
-		std::vector<aoi_radius_entity*> cur_remain_interest_in;
+		one_entity->check_remove();
+		std::vector<aoi_pos_entity*> cur_remain_interest_in;
+		const auto& center = one_entity->pos();
 		for(auto other_entity: temp_entities)
 		{
-			if(one_entity->guid() == other_entity->guid())
-			{
-				continue;
-			}
-			if (!one_entity->can_pass_flag_check(*other_entity))
-			{
-				continue;
-			}
-			if (!one_entity->pos_in_aoi_radius(*other_entity))
-			{
-				continue;
-			}
-			cur_remain_interest_in.push_back(other_entity);
+			one_entity->check_add(other_entity);
 		}
-		one_entity->update_by_pos(cur_remain_interest_in, all_entities, diff_vec);
+		
 	}
 }
-std::vector<aoi_radius_entity*> brute_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const
+std::vector<aoi_pos_entity*> brute_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const
 {
-	std::vector<aoi_radius_entity*> entity_result;
-	for(auto one_entity: entities)
+	std::vector<aoi_pos_entity*> entity_result;
+	for(auto one_entity: m_pos_entities)
 	{
 		auto diff_x = center[0] - one_entity->pos()[0];
 		auto diff_y = center[1] - one_entity->pos()[1];
@@ -75,10 +75,10 @@ std::vector<aoi_radius_entity*> brute_aoi::entity_in_rectangle(pos_t center, pos
 	}
 	return entity_result;
 }
-std::vector<aoi_radius_entity*> brute_aoi::entity_in_circle(pos_t center, pos_unit_t radius)const
+std::vector<aoi_pos_entity*> brute_aoi::entity_in_circle(pos_t center, pos_unit_t radius)const
 {
-	std::vector<aoi_radius_entity*> entity_result;
-	for(auto one_entity: entities)
+	std::vector<aoi_pos_entity*> entity_result;
+	for(auto one_entity: m_pos_entities)
 	{
 		auto diff_x = center[0] - one_entity->pos()[0];
 		auto diff_z = center[2] - one_entity->pos()[2];
@@ -90,10 +90,10 @@ std::vector<aoi_radius_entity*> brute_aoi::entity_in_circle(pos_t center, pos_un
 	}
 	return entity_result;
 }
-std::vector<aoi_radius_entity*> brute_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const
+std::vector<aoi_pos_entity*> brute_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const
 {
-	std::vector<aoi_radius_entity*> entity_result;
-	for(auto one_entity: entities)
+	std::vector<aoi_pos_entity*> entity_result;
+	for(auto one_entity: m_pos_entities)
 	{
 		auto diff_x = center[0] - one_entity->pos()[0];
 		auto diff_y = center[1] - one_entity->pos()[1];
@@ -110,10 +110,10 @@ std::vector<aoi_radius_entity*> brute_aoi::entity_in_cylinder(pos_t center, pos_
 	}
 	return entity_result;
 }
-std::vector<aoi_radius_entity*> brute_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
+std::vector<aoi_pos_entity*> brute_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
 {
-	std::vector<aoi_radius_entity*> entity_result;
-	for(auto one_entity: entities)
+	std::vector<aoi_pos_entity*> entity_result;
+	for(auto one_entity: m_pos_entities)
 	{
 		auto diff_x = center[0] - one_entity->pos()[0];
 		auto diff_y = center[1] - one_entity->pos()[1];

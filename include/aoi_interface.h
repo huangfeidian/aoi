@@ -34,7 +34,7 @@ namespace spiritsaway::aoi
 		virtual std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const = 0;
 		virtual void on_position_update(aoi_pos_entity* entity, pos_t new_pos) = 0;
 		virtual void on_radius_update(aoi_radius_entity* entity, pos_unit_t new_radius) = 0;
-		virtual void update_all(const std::vector<aoi_pos_entity*>& all_entities) = 0;
+		virtual void update_all() = 0;
 		virtual void dump(std::ostream& out_debug) const = 0;
 		const aoi_idx_t max_agent;
 		const pos_unit_t max_aoi_radius;
