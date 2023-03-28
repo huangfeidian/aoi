@@ -3,12 +3,16 @@
 #include <cmath>
 using namespace spiritsaway::aoi;
 
-axis_list::axis_list(std::uint32_t in_max_entity_count, pos_unit_t in_max_aoi_radius, pos_unit_t in_min_pos, pos_unit_t in_max_pos)
+axis_list::axis_list(std::uint32_t in_max_entity_count, pos_unit_t in_max_aoi_radius, int in_xz_pos_idx, pos_unit_t in_min_pos, pos_unit_t in_max_pos)
 : max_entity_count(in_max_entity_count)
 , node_per_anchor(std::min(std::uint32_t(std::floor(std::sqrt(in_max_entity_count))), 40u))
 , min_pos(in_min_pos)
 , max_pos(in_max_pos)
 , max_radius(in_max_aoi_radius)
+, nodes_buffer(in_max_entity_count * 4)
+, xz_pos_idx(in_xz_pos_idx)
+, nodes_for_radius(in_max_entity_count, {nullptr, nullptr})
+, nodes_for_pos(in_max_entity_count, nullptr)
 {
 	anchor_buffer = std::vector<list_node>(3 *max_entity_count / node_per_anchor + 100);
 	head.next = &tail;
@@ -43,7 +47,7 @@ void axis_list::update_anchors()
 			anchor_node->node_type = list_node_type::anchor;
 			anchor_node->pos = cur_node->pos;
 			anchor_poses.push_back(cur_node->pos);
-			anchor_node->entity = nullptr;
+			anchor_node->pos_entity = nullptr;
 			anchors.push_back(anchor_node);
 			insert_before(cur_node, anchors.back());
 			count = 0;
@@ -56,7 +60,7 @@ void axis_list::update_anchors()
 	anchor_node->node_type = list_node_type::anchor;
 	anchor_node->pos = cur_node->pos;
 	anchor_poses.push_back(cur_node->pos);
-	anchor_node->entity = nullptr;
+	anchor_node->pos_entity = nullptr;
 	anchors.push_back(anchor_node);
 	insert_before(cur_node, anchors.back());
 	dirty_count = std::max(100u, std::uint32_t(std::sqrt(max_entity_count * 10)));
@@ -114,44 +118,71 @@ void axis_list::remove(list_node* cur)
 	cur->prev = nullptr;
 }
 
-void axis_list::insert_entity(axis_nodes_for_entity* entity_nodes)
+void axis_list::insert_radius_entity(aoi_radius_entity* radius_entity)
 {
 	check_update_anchors();
 	std::uint32_t last_hint = 0;
 	list_node* last_node = &head;
-	insert_node(&entity_nodes->left, true);
-	insert_node(&entity_nodes->middle, true);
-	insert_node(&entity_nodes->right, false);
-	auto temp = entity_nodes->left.next;
-	while(temp != &(entity_nodes->right))
+	auto radius_left = nodes_buffer.request();
+	auto radius_right = nodes_buffer.request();
+	if (!radius_left || !radius_right)
+	{
+		nodes_buffer.renounce(radius_left);
+		nodes_buffer.renounce(radius_right);
+		return;
+	}
+	radius_left->node_type = list_node_type::left;
+	radius_right->node_type = list_node_type::right;
+	radius_left->radius_entity = radius_right->radius_entity = radius_entity;
+	radius_left->pos = radius_entity->pos()[xz_pos_idx] - radius_entity->radius();
+	radius_right->pos = radius_entity->pos()[xz_pos_idx] + radius_entity->radius();
+
+	insert_node(radius_left, true);
+	insert_node(radius_right, false);
+	nodes_for_radius[radius_entity->radius_idx().value] = std::make_pair(radius_left, radius_right);
+	auto temp = radius_left;
+	while(temp != radius_right)
 	{
 		if(temp->node_type == list_node_type::center)
 		{
-			entity_nodes->left.entity->try_enter(*(temp->entity));
+			radius_entity->try_enter(*(temp->pos_entity));
 		}
 		temp = temp->next;
 	}
-	auto boundary_left = find_boundary(entity_nodes->middle.pos - max_radius, true);
-	auto boundary_right = find_boundary(entity_nodes->middle.pos + max_radius, false);
-	while(boundary_left != boundary_right)
+	
+}
+
+void axis_list::insert_pos_entity(aoi_pos_entity* pos_entity)
+{
+	auto center_node = nodes_buffer.request();
+	if (!center_node)
 	{
-		if(boundary_left->node_type == list_node_type::center)
+		return;
+	}
+	center_node->node_type = list_node_type::center;
+	center_node->pos = pos_entity->pos()[xz_pos_idx];
+	center_node->pos_entity = pos_entity;
+	std::uint32_t last_hint = 0;
+	list_node* last_node = &head;
+	insert_node(center_node, true);
+	auto boundary_left = find_boundary(pos_entity->pos()[xz_pos_idx] - max_radius, true);
+	auto boundary_right = find_boundary(pos_entity->pos()[xz_pos_idx] + max_radius, false);
+	nodes_for_pos[pos_entity->pos_idx().value] = center_node;
+	while (boundary_left != boundary_right)
+	{
+		if (boundary_left->node_type == list_node_type::left)
 		{
-			boundary_left->entity->try_enter(*(entity_nodes->left.entity));
+			boundary_left->radius_entity->try_enter(*pos_entity);
 		}
 		boundary_left = boundary_left->next;
 	}
 }
 
-void axis_list::remove_entity(axis_nodes_for_entity* entity_nodes)
+void axis_list::remove_pos_entity(aoi_pos_entity* pos_entity)
 {
 	check_update_anchors();
-	list_node* temp_nodes[3] = {&(entity_nodes->left), &(entity_nodes->middle), &(entity_nodes->right)};
-	for(int i = 0; i< 3; i++)
-	{
-		auto cur_node = temp_nodes[i];
-		remove(cur_node);
-	}
+	auto cur_node = nodes_for_pos[pos_entity->pos_idx().value];
+	remove(cur_node);
 }
 void axis_list::move_forward(list_node* cur, sweep_result& visited_nodes, std::uint8_t flag)
 {
@@ -164,19 +195,19 @@ void axis_list::move_forward(list_node* cur, sweep_result& visited_nodes, std::u
 		case list_node_type::left:
 			if(flag & std::uint8_t(list_node_type::left))
 			{
-				visited_nodes.left.push_back(next->entity);
+				visited_nodes.left.push_back(next->radius_entity);
 			}
 			break;
 		case list_node_type::center:
 			if(flag & std::uint8_t(list_node_type::center))
 			{
-				visited_nodes.middle.push_back(next->entity);
+				visited_nodes.middle.push_back(next->pos_entity);
 			}
 			break;
 		case list_node_type::right:
 			if(flag & std::uint8_t(list_node_type::right))
 			{
-				visited_nodes.right.push_back(next->entity);
+				visited_nodes.right.push_back(next->radius_entity);
 			}
 			break;
 		default:
@@ -198,19 +229,19 @@ void axis_list::move_backward(list_node* cur, sweep_result& visited_nodes, std::
 		case list_node_type::left:
 			if(flag & std::uint8_t(list_node_type::left))
 			{
-				visited_nodes.left.push_back(prev->entity);
+				visited_nodes.left.push_back(prev->radius_entity);
 			}
 			break;
 		case list_node_type::center:
 			if(flag & std::uint8_t(list_node_type::center))
 			{
-				visited_nodes.middle.push_back(prev->entity);
+				visited_nodes.middle.push_back(prev->pos_entity);
 			}
 			break;
 		case list_node_type::right:
 			if(flag & std::uint8_t(list_node_type::right))
 			{
-				visited_nodes.right.push_back(prev->entity);
+				visited_nodes.right.push_back(prev->radius_entity);
 			}
 			break;
 		default:
@@ -221,121 +252,147 @@ void axis_list::move_backward(list_node* cur, sweep_result& visited_nodes, std::
 	insert_before(prev->next, cur);
 }
 
-std::unordered_set<aoi_radius_entity*> axis_list::entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const
+std::vector<aoi_pos_entity*> axis_list::entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const
 {
-	std::unordered_set<aoi_radius_entity*> result;
+	std::vector<aoi_pos_entity*> result;
 	auto boundary_left = find_boundary(std::max(min_pos + 2, range_begin), true);
 	auto boundary_right = find_boundary(std::min(max_pos - 2, range_end), false);
 	while(boundary_left != boundary_right)
 	{
 		if(boundary_left->node_type == list_node_type::center)
 		{
-			result.insert(boundary_left->entity);
+			result.push_back(boundary_left->pos_entity);
 		}
 		boundary_left = boundary_left->next;
 	}
 	return result;
 }
 
-void axis_list::update_entity_pos(axis_nodes_for_entity* entity_nodes, pos_unit_t offset)
+void axis_list::update_entity_pos(aoi_pos_entity* pos_entity, pos_unit_t offset)
 {
 	check_update_anchors();
 	if(offset == 0)
 	{
 		return;
 	}
-	entity_nodes->left.pos += offset;
-	entity_nodes->right.pos += offset;
-	entity_nodes->middle.pos += offset;
-	auto cur_entity = entity_nodes->left.entity;
-
-	sweep_buffer[0].middle.clear();
-	sweep_buffer[2].middle.clear();
+	auto cur_pos_node = nodes_for_pos[pos_entity->pos_idx().value];
+	cur_pos_node->pos += offset;
 	sweep_buffer[1].left.clear();
 	sweep_buffer[1].right.clear();
-	if(offset > 0)
+	if (offset > 0)
 	{
-		move_forward(&entity_nodes->right, sweep_buffer[0], (std::uint8_t)list_node_type::center);
-		move_forward(&entity_nodes->middle, sweep_buffer[1], (std::uint8_t)list_node_type::left + (std::uint8_t)list_node_type::right);
-		move_forward(&entity_nodes->left, sweep_buffer[2], (std::uint8_t)list_node_type::center);
-		for (auto one_ent : sweep_buffer[0].middle)
-		{
-			cur_entity->try_enter(*one_ent);
-		}
-		for (auto one_ent : sweep_buffer[2].middle)
-		{
-			cur_entity->try_leave(*one_ent);
-		}
+		move_forward(cur_pos_node, sweep_buffer[1], (std::uint8_t)list_node_type::left + (std::uint8_t)list_node_type::right);
 		for (auto one_ent : sweep_buffer[1].left)
 		{
-			one_ent->try_enter(*cur_entity);
+			one_ent->try_enter(*pos_entity);
 		}
 		for (auto one_ent : sweep_buffer[1].right)
 		{
-			one_ent->try_leave(*cur_entity);
+			one_ent->try_leave(*pos_entity);
 		}
+		for (auto one_radius_entity : pos_entity->radius_entities())
+		{
+			sweep_buffer[0].middle.clear();
+			sweep_buffer[2].middle.clear();
+			auto cur_radius_nodes = nodes_for_radius[one_radius_entity->radius_idx().value];
+			auto cur_left_node = cur_radius_nodes.first;
+			auto cur_right_node = cur_radius_nodes.second;
+			cur_left_node->pos += offset;
+			cur_right_node->pos += offset;
+			move_forward(cur_right_node, sweep_buffer[0], (std::uint8_t)list_node_type::center);
+
+			move_forward(cur_left_node, sweep_buffer[2], (std::uint8_t)list_node_type::center);
+			for (auto one_ent : sweep_buffer[0].middle)
+			{
+				one_radius_entity->try_enter(*one_ent);
+			}
+			for (auto one_ent : sweep_buffer[2].middle)
+			{
+				one_radius_entity->try_leave(*one_ent);
+			}
+			
+
+		}
+		
 	}
 	else
 	{
-		move_backward(&entity_nodes->left, sweep_buffer[0], (std::uint8_t)list_node_type::center);
-		move_backward(&entity_nodes->middle, sweep_buffer[1], (std::uint8_t)list_node_type::left + (std::uint8_t)list_node_type::right);
-		move_backward(&entity_nodes->right, sweep_buffer[2], (std::uint8_t)list_node_type::center);
-		for (auto one_ent : sweep_buffer[0].middle)
-		{
-			cur_entity->try_enter(*one_ent);
-		}
-		for (auto one_ent : sweep_buffer[2].middle)
-		{
-			cur_entity->try_leave(*one_ent);
-		}
+		move_backward(cur_pos_node, sweep_buffer[1], (std::uint8_t)list_node_type::left + (std::uint8_t)list_node_type::right);
 		for (auto one_ent : sweep_buffer[1].right)
 		{
-			one_ent->try_enter(*cur_entity);
+			one_ent->try_enter(*pos_entity);
 		}
 		for (auto one_ent : sweep_buffer[1].left)
 		{
-			one_ent->try_leave(*cur_entity);
+			one_ent->try_leave(*pos_entity);
 		}
+		for (auto one_radius_entity : pos_entity->radius_entities())
+		{
+			sweep_buffer[0].middle.clear();
+			sweep_buffer[2].middle.clear();
+			auto cur_radius_nodes = nodes_for_radius[one_radius_entity->radius_idx().value];
+			auto cur_left_node = cur_radius_nodes.first;
+			auto cur_right_node = cur_radius_nodes.second;
+			cur_left_node->pos += offset;
+			cur_right_node->pos += offset;
+			move_backward(cur_left_node, sweep_buffer[0], (std::uint8_t)list_node_type::center);
+
+			move_backward(cur_right_node, sweep_buffer[2], (std::uint8_t)list_node_type::center);
+			for (auto one_ent : sweep_buffer[0].middle)
+			{
+				one_radius_entity->try_enter(*one_ent);
+			}
+			for (auto one_ent : sweep_buffer[2].middle)
+			{
+				one_radius_entity->try_leave(*one_ent);
+			}
+		}
+		
+		
 	}
+	
+
+
 }
-void axis_list::update_entity_radius(axis_nodes_for_entity* entity_nodes, pos_unit_t delta_radius)
+void axis_list::update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_t delta_radius)
 {
 	check_update_anchors();
 	if(delta_radius == 0)
 	{
 		return;
 	}
-	auto cur_entity = entity_nodes->left.entity;
-
-	entity_nodes->right.pos += delta_radius;
-	entity_nodes->left.pos -= delta_radius;
+	auto cur_nodes = nodes_for_radius[radius_entity->radius_idx().value];
+	auto left_node = cur_nodes.first;
+	auto right_node = cur_nodes.second;
+	left_node->pos += delta_radius;
+	right_node->pos -= delta_radius;
 	sweep_buffer[0].middle.clear();
 	sweep_buffer[1].middle.clear();
 	if(delta_radius > 0)
 	{
-		move_forward(&(entity_nodes->right), sweep_buffer[0], (std::uint8_t)list_node_type::center);
-		move_backward(&(entity_nodes->left), sweep_buffer[1], (std::uint8_t)list_node_type::center);
+		move_forward(right_node, sweep_buffer[0], (std::uint8_t)list_node_type::center);
+		move_backward(left_node, sweep_buffer[1], (std::uint8_t)list_node_type::center);
 		for (auto one_ent : sweep_buffer[0].middle)
 		{
-			cur_entity->try_enter(*one_ent);
+			radius_entity->try_enter(*one_ent);
 		}
 		for (auto one_ent : sweep_buffer[1].middle)
 		{
-			cur_entity->try_enter(*one_ent);
+			radius_entity->try_enter(*one_ent);
 		}
 
 	}
 	else
 	{
-		move_forward(&(entity_nodes->left), sweep_buffer[0], (std::uint8_t)list_node_type::center);
-		move_backward(&(entity_nodes->right), sweep_buffer[1], (std::uint8_t)list_node_type::center);
+		move_forward(left_node, sweep_buffer[0], (std::uint8_t)list_node_type::center);
+		move_backward(right_node, sweep_buffer[1], (std::uint8_t)list_node_type::center);
 		for (auto one_ent : sweep_buffer[0].middle)
 		{
-			cur_entity->try_leave(*one_ent);
+			radius_entity->try_leave(*one_ent);
 		}
 		for (auto one_ent : sweep_buffer[1].middle)
 		{
-			cur_entity->try_leave(*one_ent);
+			radius_entity->try_leave(*one_ent);
 		}
 
 	}
@@ -343,89 +400,3 @@ void axis_list::update_entity_radius(axis_nodes_for_entity* entity_nodes, pos_un
 }
 
 
-
-bool axis_2d_nodes_for_entity::in_range(const aoi_radius_entity* other_entity)
-{
-	auto other_x = other_entity->pos()[0];
-	auto other_z = other_entity->pos()[2];
-	auto cur_x = entity->pos()[0];
-	auto cur_z = entity->pos()[2];
-	auto radius = entity->radius();
-	if(other_x < cur_x - radius || other_x > cur_x + radius)
-	{
-		return false;
-	}
-	if(other_z < cur_z - radius || other_z > cur_z + radius)
-	{
-		return false;
-	}
-	return true;
-}
-bool axis_2d_nodes_for_entity::enter(aoi_radius_entity* other_entity)
-{
-	if(!in_range(other_entity))
-	{
-		return false;
-	}
-	if(entity->aoi_radius_ctrl().max_interest_in && xz_interest_in.size() >= 2 * entity->aoi_radius_ctrl().max_interest_in)
-	{
-		return false;
-	}
-	if(!entity->check_flag(*other_entity))
-	{
-		return false;
-	}
-	if(xz_interest_in.insert(other_entity).second)
-	{
-		((axis_2d_nodes_for_entity*)(other_entity->cacl_data))->xz_interested_by.insert(entity);
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-	
-}
-bool axis_2d_nodes_for_entity::leave(aoi_radius_entity* other_entity)
-{
-	if(xz_interest_in.erase(other_entity))
-	{
-		((axis_2d_nodes_for_entity*)(other_entity->cacl_data))->xz_interested_by.erase(entity);
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void axis_2d_nodes_for_entity::detach()
-{
-	for(auto one_entity: xz_interest_in)
-	{
-		((axis_2d_nodes_for_entity*)(one_entity->cacl_data))->xz_interested_by.erase(entity);
-	}
-	for(auto one_entity: xz_interested_by)
-	{
-		((axis_2d_nodes_for_entity*)(one_entity->cacl_data))->xz_interest_in.erase(entity);
-	}
-	xz_interest_in.clear();
-	xz_interested_by.clear();
-	is_leaving = true;
-}
-
-std::vector<axis_2d_nodes_for_entity*> axis_list::dump(std::ostream& out_debug) const
-{
-	auto temp = head.next;
-	std::vector<axis_2d_nodes_for_entity*> result;
-	while (temp != &tail)
-	{
-		temp->dump(out_debug);
-		if (temp->node_type == list_node_type::center)
-		{
-			result.push_back(reinterpret_cast<axis_2d_nodes_for_entity*>(temp->entity->cacl_data));
-		}
-		temp = temp->next;
-	}
-	return result;
-}

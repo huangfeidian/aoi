@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <aoi_entity.h>
 #include <ostream>
+#include "frozen_pool.h"
 
 namespace spiritsaway::aoi
 {
@@ -17,70 +18,43 @@ namespace spiritsaway::aoi
 
 	struct list_node
 	{
-		aoi_entity* entity = nullptr;
+		union
+		{
+			aoi_pos_entity* pos_entity = nullptr;
+			aoi_radius_entity* radius_entity;
+		};
+		
 		list_node* prev = nullptr;
 		list_node* next = nullptr;
 		pos_unit_t pos;
 		list_node_type node_type;
 		void dump(std::ostream& out_debug) const
 		{
-			if (!entity)
+			if (!pos_entity)
 			{
 				out_debug << "anchor node with pos " << pos << std::endl;
 				return;
 			}
-			out_debug << "node for guid " << entity->guid() << " node_type " << int(node_type) << " pos " << pos << std::endl;
+			if (node_type == list_node_type::center)
+			{
+				out_debug << "node for guid " << pos_entity->guid() << " aoi_idx " << pos_entity->pos_idx().value << " radius_id " << 0 << " node_type " << int(node_type) << " pos " << pos << std::endl;
+			}
+			else
+			{
+				out_debug << "node for guid " << radius_entity->owner().guid() << " aoi_idx " << radius_entity->owner().pos_idx().value << " radius_id " << radius_entity->radius_idx().value << " node_type " << int(node_type) << " pos " << pos << std::endl;
+			}
+			
 		}
 	};
 
-	struct axis_nodes_for_entity
-	{
-		list_node left;
-		list_node middle;
-		list_node right;
-		void set_entity(aoi_entity* cur_entity, pos_unit_t pos, pos_unit_t radius)
-		{
-			left.entity = right.entity = middle.entity = cur_entity;
-			left.node_type = list_node_type::left;
-			middle.node_type = list_node_type::center;
-			right.node_type = list_node_type::right;
 
-			left.pos = pos - radius;
-			right.pos = pos + radius;
-			middle.pos = pos;
-		}
-	};
-	struct axis_2d_nodes_for_entity
-	{
-		axis_nodes_for_entity x_nodes;
-		axis_nodes_for_entity z_nodes;
-		// 由于两个轴上计算出来的只是2d矩形区域 而aoi计算区域则是圆形的  
-		// 所以2d计算出来的结果需要先存在这里 然后再计算是否真的进入aoi
-		std::unordered_set<aoi_entity*> xz_interested_by;
-		std::unordered_set<aoi_entity*> xz_interest_in;
-		aoi_entity* entity;
-		bool is_leaving = false;
-		void set_entity(aoi_entity* cur_entity)
-		{
-			x_nodes.set_entity(cur_entity, cur_entity->pos()[0], cur_entity->radius());
-			z_nodes.set_entity(cur_entity, cur_entity->pos()[2], cur_entity->radius());
-			xz_interest_in.clear();
-			xz_interested_by.clear();
-			entity = cur_entity;
-		}
-		bool enter(aoi_entity* other_entity);
-		bool leave(aoi_entity* other_entity);
-		void move();
-		void update_radius(std::uint16_t radius);
-		bool in_range(const aoi_entity* other_entity);
-		void detach();
-	};
+
 
 	struct sweep_result
 	{
-		std::vector<aoi_entity*> left;
-		std::vector<aoi_entity*> middle;
-		std::vector<aoi_entity*> right;
+		std::vector<aoi_radius_entity*> left;
+		std::vector<aoi_pos_entity*> middle;
+		std::vector<aoi_radius_entity*> right;
 		void clear()
 		{
 			left.clear();
@@ -93,8 +67,11 @@ namespace spiritsaway::aoi
 	class axis_list
 	{
 	private:
+		frozen_pool<list_node> nodes_buffer;
 		list_node head;
 		list_node tail;
+		std::vector<list_node*> nodes_for_pos;
+		std::vector<std::pair<list_node*, list_node*>> nodes_for_radius;
 		std::vector<list_node*> anchors;
 		std::vector<list_node> anchor_buffer;
 		std::vector<pos_unit_t> anchor_poses;
@@ -103,6 +80,7 @@ namespace spiritsaway::aoi
 		const pos_unit_t min_pos;
 		const pos_unit_t max_pos;
 		const pos_unit_t max_radius;
+		const int xz_pos_idx;
 		sweep_result sweep_buffer[3];
 		std::uint32_t dirty_count = 0;
 		void insert_before(list_node* next, list_node* cur);
@@ -113,14 +91,16 @@ namespace spiritsaway::aoi
 		void insert_node(list_node* cur, bool is_lower);
 		void check_update_anchors();
 	public:
-		axis_list(std::uint32_t max_entity_count, pos_unit_t max_aoi_radius, pos_unit_t min_pos, pos_unit_t max_pos);
+		axis_list(std::uint32_t max_entity_count, pos_unit_t max_aoi_radius, int xz_pos_idx, pos_unit_t min_pos, pos_unit_t max_pos);
 		void update_anchors();
-		void insert_entity(axis_nodes_for_entity* entity_nodes);
+		void insert_pos_entity(aoi_pos_entity* pos_entity);
 
-		void remove_entity(axis_nodes_for_entity* entity_nodes);
-		void update_entity_pos(axis_nodes_for_entity* entity_nodes, pos_unit_t offset);
-		void update_entity_radius(axis_nodes_for_entity* entity_nodes, pos_unit_t delta_radius);
-		std::unordered_set<aoi_entity*> entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const;
-		std::vector<axis_2d_nodes_for_entity*> dump(std::ostream& out_debug) const;
+		void remove_pos_entity(aoi_pos_entity* pos_entity);
+
+		void insert_radius_entity(aoi_radius_entity* radius_entity);
+		void remove_radius_entity(aoi_radius_entity* radius_entity);
+		void update_entity_pos(aoi_pos_entity* pos_entity, pos_unit_t offset);
+		void update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_t delta_radius);
+		std::vector<aoi_pos_entity*> entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const;
 	};
 }

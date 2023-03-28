@@ -33,9 +33,9 @@ namespace spiritsaway::aoi
 		bool add_force_aoi(aoi_pos_idx pos_idx_from, aoi_radius_idx radius_idx_to);
 		// 将guid_from 移除出guid_to 的强制关注列表
 		bool remove_force_aoi(aoi_pos_idx pos_idx_from, aoi_radius_idx radius_idx_to);
-		const std::vector<aoi_pos_idx>& interest_in(aoi_radius_idx radius_idx)const;
+		const std::unordered_map<aoi_pos_idx, aoi_pos_entity*>& interest_in(aoi_radius_idx radius_idx)const;
 		std::vector<guid_t> interest_in_guids(aoi_radius_idx radius_idx)const;
-		const std::vector<aoi_radius_idx>& interested_by(aoi_pos_idx pos_idx) const;
+		const std::unordered_set<aoi_radius_idx>& interested_by(aoi_pos_idx pos_idx) const;
 		// 更新内部信息 返回所有有callback消息通知的entity guid 列表
 		// 只有在调用update之后 所有entity的aoi interested 才是最新的正确的值
 		// T 的类型应该能转换到aoi_callback_t 这里用模板是为了避免直接用aoi_callback_t时引发的虚函数开销
@@ -76,8 +76,8 @@ namespace spiritsaway::aoi
 		pos_t min;
 		pos_t max;
 		pos_unit_t max_aoi_radius;
-		std::vector<aoi_pos_idx> m_invalid_pos_result;
-		std::vector<aoi_radius_idx> m_invalid_radius_result;
+		std::unordered_map<aoi_pos_idx, aoi_pos_entity*> m_invalid_pos_result;
+		std::unordered_set<aoi_radius_idx> m_invalid_radius_result;
 
 	};
 }

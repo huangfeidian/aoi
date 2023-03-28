@@ -271,7 +271,7 @@ bool aoi_manager::remove_force_aoi(aoi_pos_idx from, aoi_radius_idx to)
 	}
 	return to_ent->leave_by_force(*from_ent);
 }
-const std::vector<aoi_pos_idx>& aoi_manager::interest_in(aoi_radius_idx radius_idx)const
+const std::unordered_map<aoi_pos_idx, aoi_pos_entity*>& aoi_manager::interest_in(aoi_radius_idx radius_idx)const
 {
 	if (radius_idx.value >= m_radius_entities.size())
 	{
@@ -296,14 +296,15 @@ std::vector<guid_t> aoi_manager::interest_in_guids(aoi_radius_idx radius_idx) co
 		return {};
 	}
 	auto& pre_aoi_idxes = cur_entity->interest_in();
-	std::vector<guid_t> result(pre_aoi_idxes.size());
-	for(int i = 0; i< pre_aoi_idxes.size(); i++)
+	std::vector<guid_t> result;
+	result.reserve(pre_aoi_idxes.size());
+	for(auto one_pair: pre_aoi_idxes)
 	{
-		result[i] = m_pos_entities[pre_aoi_idxes[i].value]->guid();
+		result.push_back(one_pair.second->guid());
 	}
 	return result;
 }
-const std::vector<aoi_radius_idx>& aoi_manager::interested_by(aoi_pos_idx pos_idx)const
+const std::unordered_set<aoi_radius_idx>& aoi_manager::interested_by(aoi_pos_idx pos_idx)const
 {
 	if (pos_idx.value >= m_pos_entities.size())
 	{
@@ -399,7 +400,11 @@ void aoi_manager::dump(std::ostream& out_debug) const
 		auto guid = entity->guid();
 		out_debug << "info for guid " << guid <<" radius id "<<entity->radius_idx().value<< " pos: " <<entity->pos()[0]<<","<<entity->pos()[2]<<" radius:"<<entity->aoi_radius_ctrl().radius<< std::endl;
 		std::vector<guid_t> temp;
-		temp.insert(temp.end(), entity->interest_in().begin(), entity->interest_in().end());
+		temp.reserve(entity->interest_in().size());
+		for (auto one_pair : entity->interest_in())
+		{
+			temp.push_back(one_pair.second->guid());
+		}
 		std::sort(temp.begin(), temp.end());
 		out_debug << "interest in is:";
 		for (auto one_guid : temp)

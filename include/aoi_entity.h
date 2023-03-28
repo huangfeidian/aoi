@@ -16,10 +16,18 @@ namespace spiritsaway::aoi
 	struct aoi_pos_idx
 	{
 		aoi_idx_t value;
+		bool operator==(const aoi_pos_idx& other) const
+		{
+			return value == other.value;
+		}
 	};
 	struct aoi_radius_idx
 	{
 		aoi_idx_t value;
+		bool operator==(const aoi_radius_idx& other) const
+		{
+			return value == other.value;
+		}
 	};
 	using pos_unit_t = double;
 	using pos_t = std::array<pos_unit_t, 3>;
@@ -33,33 +41,30 @@ namespace spiritsaway::aoi
 
 	};
 
-	template <typename T>
-	bool remove_in_vec(std::vector<T>& vec, const T& val)
+}
+namespace std
+{
+	template <>
+	struct hash< spiritsaway::aoi::aoi_pos_idx>
 	{
-		auto cur_idx = vec.size();
-		for (int i = 0; i < vec.size(); i++)
+		std::size_t operator()(const spiritsaway::aoi::aoi_pos_idx& a) const
 		{
-			if (vec[i] == val)
-			{
-				cur_idx = i;
-				break;
-			}
+			return std::hash< spiritsaway::aoi::aoi_idx_t>()(a.value);
 		}
-		if (cur_idx == vec.size())
+	};
+
+	template <>
+	struct hash< spiritsaway::aoi::aoi_radius_idx>
+	{
+		std::size_t operator()(const spiritsaway::aoi::aoi_radius_idx& a) const
 		{
-			return false;
+			return std::hash< spiritsaway::aoi::aoi_idx_t>()(a.value);
 		}
-		if (cur_idx + 1 == vec.size())
-		{
-			vec.pop_back();
-		}
-		else
-		{
-			std::swap(vec[cur_idx], vec.back());
-			vec.pop_back();
-		}
-		return true;
-	}
+	};
+}
+
+namespace spiritsaway::aoi
+{
 
 	struct aoi_radius_controler
 	{
@@ -147,23 +152,10 @@ namespace spiritsaway::aoi
 			auto bit_offset = other_aoi_idx.value % 8;
 			return (interest_in_bitset[byte_offset] & (1 << bit_offset));
 		}
-		inline void set_interest_in(aoi_pos_entity* other)
-		{
-			auto other_aoi_idx = other->pos_idx();
-			auto byte_offset = other_aoi_idx.value / 8;
-			auto bit_offset = other_aoi_idx.value % 8;
-			interest_in_bitset[byte_offset] |= (1 << bit_offset);
-			m_interest_in[other_aoi_idx] = other;
-		}
-		inline void remove_interest_in(aoi_pos_entity* other)
-		{
-			auto other_aoi_idx = other->pos_idx();
-			auto byte_offset = other_aoi_idx.value / 8;
-			auto bit_offset = other_aoi_idx.value % 8;
-			interest_in_bitset[byte_offset] ^= (1 << bit_offset);
-			m_interest_in.erase(other_aoi_idx);
-		}
 		
+		void set_interest_in(aoi_pos_entity* other);
+
+		void remove_interest_in(aoi_pos_entity* other);
 
 		// 判断能否加入到aoi
 		bool pos_in_aoi_radius(const aoi_pos_entity & other) const;
@@ -268,8 +260,14 @@ namespace spiritsaway::aoi
 		void check_remove();
 
 		aoi_radius_entity* remove_radius_entity(aoi_radius_idx cur_radius_idx);
+
+		const std::vector<aoi_radius_entity*>& radius_entities() const
+		{
+			return m_radius_entities;
+		}
 	};
 
 
 
 }
+

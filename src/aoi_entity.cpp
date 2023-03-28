@@ -31,6 +31,10 @@ bool aoi_radius_entity::check_flag(const aoi_pos_entity& other) const
 }
 bool aoi_radius_entity::can_add_enter(const aoi_pos_entity& other, bool ignore_dist, bool force_add) const
 {
+    if (other.guid() == guid())
+    {
+        return false;
+    }
     if(!check_flag(other))
     {
         return false;
@@ -71,10 +75,11 @@ void aoi_radius_entity::enter_impl(aoi_pos_entity& other)
 
 bool aoi_radius_entity::enter_by_force(aoi_pos_entity& other)
 {
-    if (std::find(m_force_interest_in.begin(), m_force_interest_in.end(), other.pos_idx()) != m_force_interest_in.end())
+    if (m_force_interest_in.find(other.pos_idx()) != m_force_interest_in.end())
     {
         return false;
     }
+
     if(!can_add_enter(other, true, true))
     {
         return false;
@@ -99,7 +104,7 @@ bool aoi_radius_entity::leave_by_pos(aoi_pos_entity& other)
     {
         return false;
     }
-    if (std::find(m_force_interest_in.begin(), m_force_interest_in.end(), other.pos_idx()) != m_force_interest_in.end())
+    if (m_force_interest_in.find(other.pos_idx()) != m_force_interest_in.end())
     {
         return false;
     }
@@ -129,13 +134,11 @@ void aoi_radius_entity::activate(aoi_pos_entity* in_owner, const aoi_radius_cont
     m_owner = in_owner;
     m_aoi_radius_ctrl = aoi_radius_ctrl;
     m_aoi_callback = aoi_cb;
-    cacl_data = nullptr;
 }
 
 void aoi_radius_entity::deactivate()
 {
     m_aoi_callback = nullptr;
-    cacl_data = nullptr;
     m_owner = nullptr;
 }
 guid_t aoi_radius_entity::guid() const
@@ -209,7 +212,7 @@ void aoi_pos_entity::check_add(aoi_pos_entity* other)
     for (auto one_radius_entity : m_radius_entities)
     {
 
-        if (!one_radius_entity->aoi_radius_ctrl().radius < diff_radius)
+        if (!(one_radius_entity->aoi_radius_ctrl().radius < diff_radius))
         {
             break;
         }
@@ -245,7 +248,7 @@ void aoi_pos_entity::check_remove()
                 auto diff_y = (m_pos[1] - other->pos()[1]) * -1;
                 auto diff_z = m_pos[2] - other->pos()[2];
                 auto diff_radius = std::sqrt(diff_x * diff_x + diff_z * diff_z);
-                if (!one_radius_entity->aoi_radius_ctrl().radius < diff_radius)
+                if (!(one_radius_entity->aoi_radius_ctrl().radius < diff_radius))
                 {
                     should_leave = true;
                     break;
@@ -326,4 +329,21 @@ pos_unit_t aoi_pos_entity::max_radius() const
         return 0;
     }
     return m_radius_entities[0]->aoi_radius_ctrl().radius;
+}
+
+void aoi_radius_entity::set_interest_in(aoi_pos_entity* other)
+{
+    auto other_aoi_idx = other->pos_idx();
+    auto byte_offset = other_aoi_idx.value / 8;
+    auto bit_offset = other_aoi_idx.value % 8;
+    interest_in_bitset[byte_offset] |= (1 << bit_offset);
+    m_interest_in[other_aoi_idx] = other;
+}
+void aoi_radius_entity::remove_interest_in(aoi_pos_entity* other)
+{
+    auto other_aoi_idx = other->pos_idx();
+    auto byte_offset = other_aoi_idx.value / 8;
+    auto bit_offset = other_aoi_idx.value % 8;
+    interest_in_bitset[byte_offset] ^= (1 << bit_offset);
+    m_interest_in.erase(other_aoi_idx);
 }

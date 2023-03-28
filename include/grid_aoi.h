@@ -50,10 +50,10 @@ namespace spiritsaway::aoi
 			{
 				if (temp_entry->grid_x == grid_x && temp_entry->grid_z == grid_z)
 				{
-					if (pred(temp_entry->entity->pos()) && m_entity_byteset[temp_entry->entity->aoi_idx] == 0)
+					if (pred(temp_entry->entity->pos()) && m_entity_byteset[temp_entry->entity->pos_idx().value] == 0)
 					{
 						result.push_back(temp_entry->entity);
-						m_entity_byteset[temp_entry->entity->aoi_idx] = 0;
+						m_entity_byteset[temp_entry->entity->pos_idx().value] = 0;
 					}
 				}
 				temp_entry = temp_entry->next;
@@ -64,7 +64,7 @@ namespace spiritsaway::aoi
 		template <typename T>
 		std::vector<aoi_pos_entity*> filter_pos_entity_in_grids(int grid_x_min, int grid_z_min, int grid_x_max, int grid_z_max, const T& pred) const
 		{
-			std::vector<aoi_entity*> result;
+			std::vector<aoi_pos_entity*> result;
 			for (int m = grid_x_min; m <= grid_x_max; m++)
 			{
 				for (int n = grid_z_min; n <= grid_z_max; n++)
@@ -74,7 +74,7 @@ namespace spiritsaway::aoi
 			}
 			for (auto one_result : result)
 			{
-				m_entity_byteset[one_result->aoi_idx] = 0;
+				m_entity_byteset[one_result->pos_idx().value] = 0;
 			}
 			return result;
 		}
