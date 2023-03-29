@@ -81,7 +81,7 @@ bool grid_aoi::add_pos_entity(aoi_pos_entity* entity)
 	{
 		return false;
 	}
-	auto cur_entry = entry_pool.request();
+	auto cur_entry = entry_pool.pull();
 	if(!cur_entry)
 	{
 		return false;
@@ -101,7 +101,7 @@ bool grid_aoi::remove_pos_entity(aoi_pos_entity* entity)
 	grid_entry* cur_entry = (grid_entry*)entity->cacl_data;
 	unlink(cur_entry);
 	entity->cacl_data = nullptr;
-	entry_pool.renounce(cur_entry);
+	entry_pool.push(cur_entry);
 	return true;
 
 }

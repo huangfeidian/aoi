@@ -14,20 +14,32 @@ bool aoi_radius_entity::pos_in_aoi_radius(const aoi_pos_entity& other) const
     }
     return check_height(diff_y);
 }
+
 bool aoi_radius_entity::check_height(pos_unit_t diff_y) const
 {
-    if (m_aoi_radius_ctrl.height > 0)
+    if (m_aoi_radius_ctrl.max_height == m_aoi_radius_ctrl.min_height)
     {
-        if (diff_y > m_aoi_radius_ctrl.height || diff_y < -m_aoi_radius_ctrl.height)
-        {
-            return false;
-        }
+        return true;
     }
-    return true;
+    return diff_y >= m_aoi_radius_ctrl.min_height && diff_y <= m_aoi_radius_ctrl.max_height;
 }
+
 bool aoi_radius_entity::check_flag(const aoi_pos_entity& other) const
 {
-    return m_aoi_radius_ctrl.interest_in_flag & other.interested_by_flag();// 如果两个flag取and 不为0 则代表可以进入aoi
+    auto other_flag = other.interested_by_flag();
+    if (other_flag | m_aoi_radius_ctrl.forbid_flag)
+    {
+        // 不能携带forbid flag里任何一个bit
+        return false;
+    }
+    if ((other_flag & m_aoi_radius_ctrl.need_flag) != m_aoi_radius_ctrl.need_flag)
+    {
+        // 需要有need flag里的所有bit
+        return false;
+    }
+    // 拥有any flag里的任何一个bit
+    return other_flag | m_aoi_radius_ctrl.any_flag; 
+
 }
 bool aoi_radius_entity::can_add_enter(const aoi_pos_entity& other, bool ignore_dist, bool force_add) const
 {
@@ -70,7 +82,7 @@ void aoi_radius_entity::enter_impl(aoi_pos_entity& other)
 
     set_interest_in(&other);
     other.set_interested_by(this->radius_idx());
-    m_aoi_callback(this->radius_idx(), other.guid(), true);
+    m_owner->add_aoi_notify(other, m_radius_idx, true);
 }
 
 bool aoi_radius_entity::enter_by_force(aoi_pos_entity& other)
@@ -96,7 +108,7 @@ void aoi_radius_entity::leave_impl(aoi_pos_entity& other)
 {
     remove_interest_in(&other);
     other.remove_interested_by(this->m_radius_idx);
-    m_aoi_callback(m_radius_idx, other.guid(), false);
+    m_owner->add_aoi_notify(other, m_radius_idx, false);
 }
 bool aoi_radius_entity::leave_by_pos(aoi_pos_entity& other)
 {
@@ -129,16 +141,14 @@ bool aoi_radius_entity::leave_by_force(aoi_pos_entity& other)
     }
 }
 
-void aoi_radius_entity::activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl, const aoi_callback_t aoi_cb)
+void aoi_radius_entity::activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl)
 {
     m_owner = in_owner;
     m_aoi_radius_ctrl = aoi_radius_ctrl;
-    m_aoi_callback = aoi_cb;
 }
 
 void aoi_radius_entity::deactivate()
 {
-    m_aoi_callback = nullptr;
     m_owner = nullptr;
 }
 guid_t aoi_radius_entity::guid() const
@@ -175,10 +185,10 @@ void aoi_pos_entity::activate(const pos_t& in_pos, std::uint64_t in_interested_b
     m_interested_by_flag = in_interested_by_flag;
 }
 
-void aoi_pos_entity::add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl, const aoi_callback_t aoi_cb)
+void aoi_pos_entity::add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl)
 {
     m_radius_entities.push_back(in_radius_entity);
-    in_radius_entity->activate(this, aoi_radius_ctrl, aoi_cb);
+    in_radius_entity->activate(this, aoi_radius_ctrl);
     std::sort(m_radius_entities.begin(), m_radius_entities.end(), [](const aoi_radius_entity* a, const aoi_radius_entity* b)
         {
             return a->aoi_radius_ctrl().radius > b->aoi_radius_ctrl().radius;
@@ -280,6 +290,7 @@ void aoi_pos_entity::check_remove()
 
 void aoi_pos_entity::deactivate()
 {
+    m_aoi_notify_infos.clear();
     //std::vector<aoi_idx_t> temp;
     //temp = cur_entity->force_interest_in();
     //for (auto one_aoi_idx : temp)
@@ -346,4 +357,32 @@ void aoi_radius_entity::remove_interest_in(aoi_pos_entity* other)
     auto bit_offset = other_aoi_idx.value % 8;
     interest_in_bitset[byte_offset] ^= (1 << bit_offset);
     m_interest_in.erase(other_aoi_idx);
+}
+
+void aoi_pos_entity::add_aoi_notify(const aoi_pos_entity& other, aoi_radius_idx radius_idx, bool is_enter)
+{
+    aoi_notify_info new_notify_info;
+    new_notify_info.is_enter = is_enter;
+    new_notify_info.other_guid = other.guid();
+    new_notify_info.other_pos_idx = other.pos_idx();
+}
+void aoi_pos_entity::invoke_aoi_cb(const std::function<void(guid_t, const std::vector<aoi_notify_info>&)>& aoi_cb)
+{
+    if (m_during_aoi_cb)
+    {
+        return;
+    }
+    m_during_aoi_cb = true;
+    std::vector< aoi_notify_info> temp_vec;
+    while (!m_aoi_notify_infos.empty())
+    {
+        // 如果cb触发后又引发了notify的增加 继续触发cb
+        temp_vec.clear();
+        std::swap(temp_vec, m_aoi_notify_infos);
+        aoi_cb(m_guid, temp_vec);
+    }
+    
+    
+    
+    m_during_aoi_cb = false;
 }

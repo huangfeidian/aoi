@@ -20,6 +20,10 @@ namespace spiritsaway::aoi
 		{
 			return value == other.value;
 		}
+		bool operator<(const aoi_pos_idx& other) const
+		{
+			return value < other.value;
+		}
 	};
 	struct aoi_radius_idx
 	{
@@ -28,18 +32,23 @@ namespace spiritsaway::aoi
 		{
 			return value == other.value;
 		}
+
+		bool operator<(const aoi_radius_idx& other) const
+		{
+			return value < other.value;
+		}
 	};
 	using pos_unit_t = double;
 	using pos_t = std::array<pos_unit_t, 3>;
-	using aoi_callback_t = std::function<void(aoi_radius_idx, guid_t, bool)>; // self_guid other_guid, is_enter
-	enum class aoi_flag :std::uint8_t
+	struct aoi_notify_info
 	{
-		ignore_enter_callback = 1,// 不处理enter消息通知
-		ignore_leave_callback = 2,// 不处理leave 消息通知
-		forbid_interested_by = 3,// 不会进入其他entity的aoi
-		forbid_interest_in = 4,// 其他entity 不会进入当前entity的aoi
+		guid_t other_guid;
+		aoi_radius_idx self_radius_idx;
+		aoi_pos_idx other_pos_idx;
 
+		bool is_enter;
 	};
+
 
 }
 namespace std
@@ -68,12 +77,17 @@ namespace spiritsaway::aoi
 
 	struct aoi_radius_controler
 	{
-		std::uint8_t flag = 0; //当前entity的特殊flag
-		std::uint32_t interest_in_flag = 1; // 当前entity允许哪些flag进入自己的aoi
-		std::uint16_t max_interest_in;//当前aoi内最大可接受数量 这个并不是硬性数量 而是超过此数量时某些类型的entity将无法进入aoi
-		pos_unit_t radius;// aoi的接收半径 为0 代表不接受aoi信息
-		pos_unit_t height = 0;// aoi的接收高度 为0 代表无视高度
+		std::uint64_t any_flag = 0; // 拥有其中任何一个flag都可以进入当前radius
+		std::uint64_t need_flag = 0; // 必须拥有这些flag才能进入当前radius
+		std::uint64_t forbid_flag = 0;// 禁止有这些flag的entity进入当前radius
+		std::uint16_t max_interest_in = 10;//当前aoi内最大可接受数量 这个并不是硬性数量 而是超过此数量时某些类型的entity将无法进入aoi
+		pos_unit_t radius = 0;// aoi的接收半径 为0 代表不接受aoi信息
+		pos_unit_t min_height = 0; // 目标与当前entity的高度差不得小于这个值
+		pos_unit_t max_height = 0; // 目标与当前entity的高度差不得大于这个值
+		
 	};
+
+
 	class aoi_pos_entity;
 	class aoi_radius_entity
 	{
@@ -93,9 +107,7 @@ namespace spiritsaway::aoi
 		std::vector<std::uint8_t> interest_in_bitset; // bitmap 
 		
 		aoi_radius_controler m_aoi_radius_ctrl;
-		aoi_callback_t m_aoi_callback;
 		aoi_pos_entity* m_owner = nullptr;
-
 	public:
 		aoi_radius_idx radius_idx() const
 		{
@@ -142,10 +154,7 @@ namespace spiritsaway::aoi
 		{
 			return m_aoi_radius_ctrl;
 		}
-		bool has_flag(aoi_flag cur_flag) const
-		{
-			return (m_aoi_radius_ctrl.flag & (1 << std::uint8_t(cur_flag))) != 0;
-		}
+
 		inline bool has_interest_in(const aoi_pos_idx other_aoi_idx) const
 		{
 			auto byte_offset = other_aoi_idx.value / 8;
@@ -172,11 +181,14 @@ namespace spiritsaway::aoi
 		bool try_leave(aoi_pos_entity& other);
 
 		inline guid_t guid() const;
-		void activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl, const aoi_callback_t aoi_cb);
+		void activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl);
 		void deactivate();
 
-		void update_by_pos(const std::vector<aoi_pos_entity*>&new_interest_in, const std::vector<aoi_pos_entity*>&all_entities, std::vector<std::uint8_t>&diff_vec);
+
 		const pos_t& pos() const;
+		
+
+
 	};
 
 	class aoi_pos_entity
@@ -191,6 +203,8 @@ namespace spiritsaway::aoi
 		std::unordered_set<aoi_radius_idx> m_force_interested_by;// 因为强制aoi而进入的其他entity的guid 集合
 		std::vector<aoi_radius_entity*> m_radius_entities; // 注册在当前pos上的所有radius radius从大到小排序
 		std::uint64_t m_interested_by_flag;// 自己能被哪些flag的radius关注
+		std::vector<aoi_notify_info> m_aoi_notify_infos;
+		bool m_during_aoi_cb = false; // 避免在触发aoi cb时递归触发
 	public:
 		// 这个是aoi计算器所需的数据 只在计算器内部使用
 		void* cacl_data = nullptr;
@@ -254,7 +268,7 @@ namespace spiritsaway::aoi
 		void remove_force_interested_by(aoi_radius_idx radius_idx);
 		void activate(const pos_t& in_pos, std::uint64_t in_interested_by_flag, guid_t in_guid);
 		void deactivate();
-		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl, const aoi_callback_t aoi_cb);
+		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl);
 
 		void check_add(aoi_pos_entity* other);
 		void check_remove();
@@ -265,6 +279,9 @@ namespace spiritsaway::aoi
 		{
 			return m_radius_entities;
 		}
+		void add_aoi_notify(const aoi_pos_entity& other, aoi_radius_idx radius_idx, bool is_enter);
+
+		void invoke_aoi_cb(const std::function<void(guid_t, const std::vector<aoi_notify_info>&)>& aoi_cb);
 	};
 
 

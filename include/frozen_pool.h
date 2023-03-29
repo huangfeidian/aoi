@@ -24,7 +24,7 @@ namespace spiritsaway::aoi
 				avail_indexes[i] = i + 1;
 			}
 		}
-		T* request()
+		T* pull()
 		{
 			if (cur_avail_idx >= size)
 			{
@@ -36,7 +36,7 @@ namespace spiritsaway::aoi
 			next = size;
 			return result;
 		}
-		void renounce(T* element)
+		void push(T* element)
 		{
 			auto offset = element - data.data();
 			if (offset < 0 || offset >= size)

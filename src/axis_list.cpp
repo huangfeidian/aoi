@@ -123,12 +123,12 @@ void axis_list::insert_radius_entity(aoi_radius_entity* radius_entity)
 	check_update_anchors();
 	std::uint32_t last_hint = 0;
 	list_node* last_node = &head;
-	auto radius_left = nodes_buffer.request();
-	auto radius_right = nodes_buffer.request();
+	auto radius_left = nodes_buffer.pull();
+	auto radius_right = nodes_buffer.pull();
 	if (!radius_left || !radius_right)
 	{
-		nodes_buffer.renounce(radius_left);
-		nodes_buffer.renounce(radius_right);
+		nodes_buffer.push(radius_left);
+		nodes_buffer.push(radius_right);
 		return;
 	}
 	radius_left->node_type = list_node_type::left;
@@ -154,7 +154,7 @@ void axis_list::insert_radius_entity(aoi_radius_entity* radius_entity)
 
 void axis_list::insert_pos_entity(aoi_pos_entity* pos_entity)
 {
-	auto center_node = nodes_buffer.request();
+	auto center_node = nodes_buffer.pull();
 	if (!center_node)
 	{
 		return;

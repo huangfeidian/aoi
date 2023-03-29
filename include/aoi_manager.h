@@ -14,18 +14,16 @@ namespace spiritsaway::aoi
 	class aoi_manager
 	{
 	public:
-		aoi_manager(aoi_interface* aoi_impl, aoi_idx_t max_entity_size, pos_unit_t max_aoi_radius, pos_t min, pos_t max);
+		aoi_manager(aoi_interface* aoi_impl, aoi_idx_t max_entity_size, pos_unit_t max_aoi_radius, pos_t min, pos_t max, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> aoi_cb);
 		~aoi_manager();
 
 		
 		aoi_pos_idx add_pos_entity(guid_t guid, const pos_t& in_pos, std::uint64_t in_interested_by_flag);
 
 		bool remove_pos_entity(aoi_pos_idx pos_idx);
-		const aoi_pos_entity* get_pos_entity(aoi_pos_idx pos_idx) const;
 
-		aoi_radius_idx add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl, const  aoi_callback_t aoi_callback);
+		aoi_radius_idx add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl);
 		bool remove_radius_entity(aoi_radius_idx radius_idx);
-		const aoi_radius_entity* get_radius_entity(aoi_radius_idx radius_idx) const;
 
 		bool change_entity_radius(aoi_radius_idx radius_idx, pos_unit_t radius);
 		bool change_entity_pos(aoi_pos_idx pos_idx, pos_t pos);
@@ -64,8 +62,10 @@ namespace spiritsaway::aoi
 		void renounce_pos_entity_idx(aoi_pos_idx pos_idx);
 		void renounce_radius_entity_idx(aoi_radius_idx radius_idx);
 	private:
-		
+		std::function<void(guid_t, const std::vector<aoi_notify_info>&)> m_aoi_cb;
 		std::vector<aoi_pos_entity*> m_pos_entities;
+		std::vector<aoi_pos_entity*> m_active_pos_entities;
+		std::vector<aoi_pos_entity*> m_update_pos_entities;
 		std::vector<aoi_pos_idx> m_avail_pos_slots;
 		std::unordered_set<aoi_idx_t> m_pos_entities_removed;
 
