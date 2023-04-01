@@ -166,6 +166,13 @@ void aoi_radius_entity::activate(aoi_pos_entity* in_owner, const aoi_radius_cont
 
 void aoi_radius_entity::deactivate()
 {
+    for (const auto& one_intersted : m_interest_in)
+    {
+        m_owner->add_aoi_notify(*one_intersted.second, m_radius_idx, false);
+    }
+    m_force_interest_in.clear();
+    m_interest_in.clear();
+    std::fill(interest_in_bitset.begin(), interest_in_bitset.end(), 0);
     m_owner = nullptr;
 }
 guid_t aoi_radius_entity::guid() const
@@ -218,6 +225,7 @@ aoi_radius_entity* aoi_pos_entity::remove_radius_entity(aoi_radius_idx cur_radiu
         if (m_radius_entities[i]->radius_idx().value == cur_radius_idx.value)
         {
             auto result = m_radius_entities[i];
+            result->deactivate();
             m_radius_entities.erase(m_radius_entities.begin() + i);
             return result;
         }

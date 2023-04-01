@@ -14,6 +14,8 @@
 #include <sstream>
 using json = nlohmann::json;
 using namespace spiritsaway::aoi;
+std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results(10);
+
 template<typename T>
 void clear_subvec(std::vector<T>& data)
 {
@@ -123,18 +125,21 @@ bool check_on_guid_result(guid_t guid, const std::vector<pos_t>& guid_positions,
 	}
 	return fail;
 }
-auto result_lambda = [](std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>>& aoi_results, std::size_t i)
+auto result_lambda = [](std::size_t i)
 {
-	return [&aoi_results, i](guid_t guid_from, guid_t to, bool is_enter)
+	return [i](guid_t guid_from, const std::vector<aoi_notify_info>& notify_info)
 	{
 		auto& temp = aoi_results[i][guid_from];
-		if (is_enter)
+		for (const auto& one_info : notify_info)
 		{
-			temp[0].insert(to);
-		}
-		else
-		{
-			temp[1].insert(to);
+			if (one_info.is_enter)
+			{
+				temp[0].insert(one_info.other_guid);
+			}
+			else
+			{
+				temp[1].insert(one_info.other_guid);
+			}
 		}
 	};
 };
@@ -188,9 +193,10 @@ std::vector<aoi_manager*> create_aoi_mgrs(std::uint32_t max_entity_size, pos_uni
 	auto grid_impl = new grid_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max, grid_size, grid_block_size);
 	auto list_impl = new list_2d_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max);
 	auto brute_impl = new brute_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max);
-	auto grid_aoi_mgr = new aoi_manager(grid_impl, max_entity_size, m_max_aoi_radius, border_min, border_max);
-	auto list_aoi_mgr = new aoi_manager(list_impl, max_entity_size, m_max_aoi_radius, border_min, border_max);
-	auto brute_aoi_mgr = new aoi_manager(brute_impl, max_entity_size, m_max_aoi_radius, border_min, border_max);
+	auto brute_aoi_mgr = new aoi_manager(false, brute_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(0));
+	auto grid_aoi_mgr = new aoi_manager(false, grid_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(1));
+	auto list_aoi_mgr = new aoi_manager(false, list_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(2));
+
 	std::vector<aoi_manager*> total_aoi_mgrs{ brute_aoi_mgr, grid_aoi_mgr, list_aoi_mgr };
 	return total_aoi_mgrs;
 }
@@ -312,17 +318,23 @@ std::vector<std::pair<guid_t, pos_t>> create_entity_diffs(std::vector<pos_t>& en
 }
 bool test_add(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_poses, const std::vector<pos_unit_t>& entity_radiues)
 {
-	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results(mgrs.size());
+
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_controler cur_aoi_radius_ctrl;
+	aoi_radius_controler cur_aoi_radius_ctrl;
+	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
+	cur_aoi_radius_ctrl.any_flag = 1;
+	cur_aoi_radius_ctrl.forbid_flag = 0;
+	cur_aoi_radius_ctrl.need_flag = 1;
+
 	for (std::size_t i = 0; i< mgrs.size(); i++)
 	{
 		auto one_mgr = mgrs[i];
 		for (guid_t j = 0; j < entity_poses.size(); j++)
 		{
 			cur_aoi_radius_ctrl.radius = entity_radiues[j];
-			one_mgr->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i));
+			auto cur_pos_idx = one_mgr->add_pos_entity(j,  entity_poses[j], 1);
+			one_mgr->add_radius_entity(cur_pos_idx, cur_aoi_radius_ctrl);
 		}
 		report_cost(start, end, "add entity for aoi_mgr " + std::to_string(i), __LINE__);
 
@@ -336,10 +348,14 @@ bool test_add(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_p
 bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_poses, const std::vector<pos_unit_t>& entity_radiues)
 {
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results(mgrs.size());
-	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
+	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_controler cur_aoi_radius_ctrl;
+	aoi_radius_controler cur_aoi_radius_ctrl;
+	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
+	cur_aoi_radius_ctrl.any_flag = 1;
+	cur_aoi_radius_ctrl.forbid_flag = 0;
+	cur_aoi_radius_ctrl.need_flag = 1;
 
 	for (std::size_t i = 0; i < mgrs.size(); i++)
 	{
@@ -347,7 +363,10 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 		for (guid_t j = 0; j < entity_poses.size(); j++)
 		{
 			cur_aoi_radius_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(one_mgr->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			auto cur_pos_idx = one_mgr->add_pos_entity(j, entity_poses[j], 1);
+			aoi_entity_idxes[i].push_back(cur_pos_idx);
+			one_mgr->add_radius_entity(cur_pos_idx, cur_aoi_radius_ctrl);
+
 		}
 
 		one_mgr->update();
@@ -364,7 +383,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 	{
 		for (std::size_t i = 0; i < mgrs.size(); i++)
 		{
-			mgrs[i]->remove_entity(aoi_entity_idxes[i][j]);
+			mgrs[i]->remove_pos_entity(aoi_entity_idxes[i][j]);
 			mgrs[i]->update();
 
 		}
@@ -385,16 +404,22 @@ bool test_trace(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity
 {
 
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{mgrs.size() };
-	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
+	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_controler cur_aoi_radius_ctrl;
+	aoi_radius_controler cur_aoi_radius_ctrl;
+	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
+	cur_aoi_radius_ctrl.any_flag = 1;
+	cur_aoi_radius_ctrl.forbid_flag = 0;
+	cur_aoi_radius_ctrl.need_flag = 1;
 	for (guid_t j = 0; j < entity_poses.size(); j++)
 	{
 		for (std::size_t i = 0; i < mgrs.size(); i++)
 		{
 			cur_aoi_radius_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			auto cur_pos_idx = mgrs[i]->add_pos_entity(j, entity_poses[j], 1);
+			aoi_entity_idxes[i].push_back(cur_pos_idx);
+			mgrs[i]->add_radius_entity(cur_pos_idx, cur_aoi_radius_ctrl);
 
 		}
 		if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
@@ -413,9 +438,13 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 {
 	
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{ mgrs.size() };
-	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
+	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 
-	aoi_controler cur_aoi_radius_ctrl;
+	aoi_radius_controler cur_aoi_radius_ctrl;
+	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
+	cur_aoi_radius_ctrl.any_flag = 1;
+	cur_aoi_radius_ctrl.forbid_flag = 0;
+	cur_aoi_radius_ctrl.need_flag = 1;
 
 	for (std::size_t i = 0; i< mgrs.size(); i++)
 	{
@@ -423,7 +452,9 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 		for (std::size_t j = 0; j < entity_poses.size(); j++)
 		{
 			cur_aoi_radius_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			auto cur_pos_idx = one_mgr->add_pos_entity(j, entity_poses[j], 1);
+			aoi_entity_idxes[i].push_back(cur_pos_idx);
+			one_mgr->add_radius_entity(cur_pos_idx, cur_aoi_radius_ctrl);
 		}
 		one_mgr->update();
 	}
@@ -462,9 +493,13 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 {
 
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{ mgrs.size() };
-	std::vector<std::vector<aoi_idx_t>> aoi_entity_idxes(mgrs.size());
+	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 
-	aoi_controler cur_aoi_radius_ctrl;
+	aoi_radius_controler cur_aoi_radius_ctrl;
+	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
+	cur_aoi_radius_ctrl.any_flag = 1;
+	cur_aoi_radius_ctrl.forbid_flag = 0;
+	cur_aoi_radius_ctrl.need_flag = 1;
 
 	for (std::size_t i = 0; i < mgrs.size(); i++)
 	{
@@ -472,7 +507,9 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 		for (std::size_t j = 0; j < entity_poses.size(); j++)
 		{
 			cur_aoi_radius_ctrl.radius = entity_radiues[j];
-			aoi_entity_idxes[i].push_back(mgrs[i]->add_entity(j, cur_aoi_radius_ctrl, entity_poses[j], result_lambda(aoi_results, i)));
+			auto cur_pos_idx = one_mgr->add_pos_entity(j, entity_poses[j], 1);
+			aoi_entity_idxes[i].push_back(cur_pos_idx);
+			one_mgr->add_radius_entity(cur_pos_idx, cur_aoi_radius_ctrl);
 		}
 		one_mgr->update();
 	}

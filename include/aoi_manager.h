@@ -20,7 +20,7 @@ namespace spiritsaway::aoi
 		
 		aoi_pos_idx add_pos_entity(guid_t guid, const pos_t& in_pos, std::uint64_t in_interested_by_flag);
 
-		bool remove_pos_entity(aoi_pos_idx pos_idx);
+		bool remove_pos_entity(aoi_pos_idx pos_idx); // 如果还挂载有radius entity 则先删除radius entity 再删除pos entity
 
 		aoi_radius_idx add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl);
 		bool remove_radius_entity(aoi_radius_idx radius_idx);

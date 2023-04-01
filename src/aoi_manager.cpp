@@ -182,6 +182,20 @@ bool aoi_manager::remove_pos_entity(aoi_pos_idx pos_idx)
 	{
 		return false;
 	}
+	if (!cur_entity->radius_entities().empty())
+	{
+		std::vector<aoi_radius_idx> temp_radius_idxes;
+		temp_radius_idxes.reserve(cur_entity->radius_entities().size());
+		for (const auto& one_radius_entity : cur_entity->radius_entities())
+		{
+			temp_radius_idxes.push_back(one_radius_entity->radius_idx());
+		}
+		for (auto one_radius_idx : temp_radius_idxes)
+		{
+			remove_radius_entity(one_radius_idx);
+		}
+	}
+	
 	m_aoi_impl->remove_pos_entity(cur_entity);
 
 	for (std::uint32_t i = 0; i < m_active_pos_entities.size(); i++)
