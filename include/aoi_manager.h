@@ -14,7 +14,7 @@ namespace spiritsaway::aoi
 	class aoi_manager
 	{
 	public:
-		aoi_manager(bool is_radius_circle, aoi_interface* aoi_impl, aoi_idx_t max_entity_size, aoi_idx_t max_radius_size,  pos_unit_t max_aoi_radius, pos_t min, pos_t max, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> aoi_cb);
+		aoi_manager(bool is_radius_circle, aoi_interface* aoi_impl, aoi_idx_t max_entity_size, aoi_idx_t max_radius_size,  pos_t pos_min, pos_t pos_max, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> aoi_cb);
 		~aoi_manager();
 
 		
@@ -75,7 +75,6 @@ namespace spiritsaway::aoi
 		aoi_interface* m_aoi_impl;
 		pos_t m_min_pos;
 		pos_t m_max_pos;
-		pos_unit_t m_max_aoi_radius;
 		std::unordered_map<aoi_pos_idx, aoi_pos_entity*> m_invalid_pos_result;
 		std::unordered_set<aoi_radius_idx> m_invalid_radius_result;
 		const bool m_is_radius_circle; // 是否用圆来判断半径 false时用矩形

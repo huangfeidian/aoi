@@ -41,13 +41,12 @@ static std::vector<guid_t> entity_vec_to_guid(const std::vector<aoi_pos_entity*>
 	}
 	return result;
 }
-aoi_manager::aoi_manager(bool is_radius_circle, aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_size, aoi_idx_t in_max_radius_size, pos_unit_t in_max_aoi_radius, pos_t in_min, pos_t in_max, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> in_aoi_cb)
+aoi_manager::aoi_manager(bool is_radius_circle, aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_size, aoi_idx_t in_max_radius_size,  pos_t in_min_pos, pos_t in_max_pos, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> in_aoi_cb)
 : m_pos_entities(in_max_entity_size + 1, nullptr)
 , m_radius_entities(in_max_radius_size + 1, nullptr)
 , m_aoi_impl(in_aoi_impl)
-, m_min_pos(in_min)
-, m_max_pos(in_max)
-, m_max_aoi_radius(in_max_aoi_radius)
+, m_min_pos(in_min_pos)
+, m_max_pos(in_max_pos)
 , m_aoi_cb(in_aoi_cb)
 , m_is_radius_circle(is_radius_circle)
 {
@@ -135,7 +134,7 @@ aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::u
 }
 aoi_radius_idx aoi_manager::add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl)
 {
-	if(!m_aoi_impl || aoi_radius_ctrl.radius >= m_max_aoi_radius || !in_pos_idx.value || in_pos_idx.value >= m_pos_entities.size())
+	if(!m_aoi_impl  || !in_pos_idx.value || in_pos_idx.value >= m_pos_entities.size())
 	{
 		return aoi_radius_idx{ 0 };
 	}
@@ -170,7 +169,10 @@ bool aoi_manager::remove_pos_entity(aoi_pos_idx pos_idx)
 {
 
 
-	
+	if (pos_idx.value >= m_pos_entities.size())
+	{
+		return false;
+	}
 	auto cur_entity = m_pos_entities[pos_idx.value];
 	if (!cur_entity)
 	{
@@ -207,7 +209,10 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 {
 
 
-
+	if (radius_idx.value >= m_radius_entities.size())
+	{
+		return false;
+	}
 	auto cur_entity = m_radius_entities[radius_idx.value];
 	if (!cur_entity)
 	{
@@ -232,16 +237,17 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 
 bool aoi_manager::change_entity_radius(aoi_radius_idx radius_idx, pos_unit_t radius)
 {
-	if(radius >= m_max_aoi_radius)
-	{
-		return false;
-	}
+
 
 	if (radius_idx.value >= m_radius_entities.size())
 	{
 		return false;
 	}
 	auto cur_entity = m_radius_entities[radius_idx.value];
+	if (!cur_entity)
+	{
+		return false;
+	}
 	m_aoi_impl->on_radius_update(cur_entity, radius);
 	return true;
 }
@@ -257,6 +263,10 @@ bool aoi_manager::change_entity_pos(aoi_pos_idx pos_idx, pos_t pos)
 		return false;
 	}
 	auto cur_entity = m_pos_entities[pos_idx.value];
+	if (!cur_entity)
+	{
+		return false;
+	}
 	m_aoi_impl->on_position_update(cur_entity, pos);
 	return true;
 }
