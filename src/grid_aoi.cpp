@@ -11,8 +11,8 @@ inline std::uint32_t grid_aoi::computegridHash(int x, int y, const std::uint32_t
 // set_result = set_1 - set_2
 
 
-grid_aoi::grid_aoi(aoi_idx_t max_entity_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max, std::uint32_t in_grid_size,  std::uint32_t in_grid_blocks)
-: aoi_interface(max_entity_size, max_aoi_radius, border_min, border_max)
+grid_aoi::grid_aoi(aoi_idx_t max_entity_size, pos_unit_t m_max_aoi_radius, pos_t border_min, pos_t border_max, std::uint32_t in_grid_size,  std::uint32_t in_grid_blocks)
+: aoi_interface(max_entity_size, m_max_aoi_radius, border_min, border_max)
 , grid_size(in_grid_size)
 , entry_pool(max_entity_size + 1)
 , grid_bucket_num(in_grid_blocks)

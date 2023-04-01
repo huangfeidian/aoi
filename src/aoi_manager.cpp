@@ -41,14 +41,15 @@ static std::vector<guid_t> entity_vec_to_guid(const std::vector<aoi_pos_entity*>
 	}
 	return result;
 }
-aoi_manager::aoi_manager(aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_size, pos_unit_t in_max_aoi_radius, pos_t in_min, pos_t in_max, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> in_aoi_cb)
+aoi_manager::aoi_manager(bool is_radius_circle, aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_size, aoi_idx_t in_max_radius_size, pos_unit_t in_max_aoi_radius, pos_t in_min, pos_t in_max, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> in_aoi_cb)
 : m_pos_entities(in_max_entity_size + 1, nullptr)
-, m_radius_entities(in_max_entity_size + 1, nullptr)
-, aoi_impl(in_aoi_impl)
-, min(in_min)
-, max(in_max)
-, max_aoi_radius(in_max_aoi_radius)
+, m_radius_entities(in_max_radius_size + 1, nullptr)
+, m_aoi_impl(in_aoi_impl)
+, m_min_pos(in_min)
+, m_max_pos(in_max)
+, m_max_aoi_radius(in_max_aoi_radius)
 , m_aoi_cb(in_aoi_cb)
+, m_is_radius_circle(is_radius_circle)
 {
 	m_avail_pos_slots = std::vector<aoi_pos_idx>(in_max_entity_size);
 	for (aoi_idx_t i = 0; i < m_avail_pos_slots.size(); i++)
@@ -57,7 +58,7 @@ aoi_manager::aoi_manager(aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_siz
 	}
 	std::reverse(m_avail_pos_slots.begin(), m_avail_pos_slots.end());
 
-	m_avail_radius_slots = std::vector<aoi_radius_idx>(in_max_entity_size);
+	m_avail_radius_slots = std::vector<aoi_radius_idx>(in_max_radius_size);
 	for (aoi_idx_t i = 0; i < m_avail_radius_slots.size(); i++)
 	{
 		m_avail_radius_slots[i] = aoi_radius_idx{ aoi_idx_t(i + 1) };
@@ -67,10 +68,10 @@ aoi_manager::aoi_manager(aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_siz
 aoi_manager::~aoi_manager()
 
 {
-	if (aoi_impl)
+	if (m_aoi_impl)
 	{
-		delete aoi_impl;
-		aoi_impl = nullptr;
+		delete m_aoi_impl;
+		m_aoi_impl = nullptr;
 	}
 	for (auto one_entity : m_pos_entities)
 	{
@@ -92,15 +93,15 @@ aoi_manager::~aoi_manager()
 }
 bool aoi_manager::is_in_border(const pos_t& pos) const
 {
-	if(pos[0] <= min[0] || pos[0] >= max[0])
+	if(pos[0] <= m_min_pos[0] || pos[0] >= m_max_pos[0])
 	{
 		return false;
 	}
-	if(pos[1] <= min[1] || pos[1] >= max[1])
+	if(pos[1] <= m_min_pos[1] || pos[1] >= m_max_pos[1])
 	{
 		return false;
 	}
-	if(pos[2] <= min[2] || pos[2] >= max[2])
+	if(pos[2] <= m_min_pos[2] || pos[2] >= m_max_pos[2])
 	{
 		return false;
 	}
@@ -109,7 +110,7 @@ bool aoi_manager::is_in_border(const pos_t& pos) const
 
 aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::uint64_t in_interested_by_flag)
 {
-	if (!aoi_impl || !is_in_border(in_pos))
+	if (!m_aoi_impl || !is_in_border(in_pos))
 	{
 		return aoi_pos_idx{ 0 };
 	}
@@ -121,7 +122,7 @@ aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::u
 	auto cur_pos_entity = m_pos_entities[cur_aoi_pos_idx.value];
 	m_active_pos_entities.push_back(cur_pos_entity);
 	cur_pos_entity->activate(in_pos, guid, in_interested_by_flag);
-	if (!aoi_impl->add_pos_entity(cur_pos_entity))
+	if (!m_aoi_impl->add_pos_entity(cur_pos_entity))
 	{
 		renounce_pos_entity_idx(cur_aoi_pos_idx);
 		return aoi_pos_idx{ 0 };
@@ -134,7 +135,7 @@ aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::u
 }
 aoi_radius_idx aoi_manager::add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl)
 {
-	if(!aoi_impl || aoi_radius_ctrl.radius >= max_aoi_radius || !in_pos_idx.value || in_pos_idx.value >= m_pos_entities.size())
+	if(!m_aoi_impl || aoi_radius_ctrl.radius >= m_max_aoi_radius || !in_pos_idx.value || in_pos_idx.value >= m_pos_entities.size())
 	{
 		return aoi_radius_idx{ 0 };
 	}
@@ -153,7 +154,7 @@ aoi_radius_idx aoi_manager::add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_
 
 	cur_owner_entity->add_radius_entity(cur_radius_entity, aoi_radius_ctrl);
 
-	if (!aoi_impl->add_radius_entity(cur_radius_entity))
+	if (!m_aoi_impl->add_radius_entity(cur_radius_entity))
 	{
 		cur_owner_entity->remove_radius_entity(cur_aoi_radius_idx);
 		renounce_radius_entity_idx(cur_aoi_radius_idx);
@@ -179,7 +180,7 @@ bool aoi_manager::remove_pos_entity(aoi_pos_idx pos_idx)
 	{
 		return false;
 	}
-	aoi_impl->remove_pos_entity(cur_entity);
+	m_aoi_impl->remove_pos_entity(cur_entity);
 
 	for (std::uint32_t i = 0; i < m_active_pos_entities.size(); i++)
 	{
@@ -216,7 +217,7 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 	{
 		return false;
 	}
-	aoi_impl->remove_radius_entity(cur_entity);
+	m_aoi_impl->remove_radius_entity(cur_entity);
 
 	cur_entity->owner().remove_radius_entity(radius_idx);
 	cur_entity->deactivate();
@@ -231,7 +232,7 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 
 bool aoi_manager::change_entity_radius(aoi_radius_idx radius_idx, pos_unit_t radius)
 {
-	if(radius >= max_aoi_radius)
+	if(radius >= m_max_aoi_radius)
 	{
 		return false;
 	}
@@ -241,7 +242,7 @@ bool aoi_manager::change_entity_radius(aoi_radius_idx radius_idx, pos_unit_t rad
 		return false;
 	}
 	auto cur_entity = m_radius_entities[radius_idx.value];
-	aoi_impl->on_radius_update(cur_entity, radius);
+	m_aoi_impl->on_radius_update(cur_entity, radius);
 	return true;
 }
 
@@ -256,7 +257,7 @@ bool aoi_manager::change_entity_pos(aoi_pos_idx pos_idx, pos_t pos)
 		return false;
 	}
 	auto cur_entity = m_pos_entities[pos_idx.value];
-	aoi_impl->on_position_update(cur_entity, pos);
+	m_aoi_impl->on_position_update(cur_entity, pos);
 	return true;
 }
 
@@ -337,29 +338,29 @@ const std::unordered_set<aoi_radius_idx>& aoi_manager::interested_by(aoi_pos_idx
 
 std::vector<guid_t> aoi_manager::entity_in_circle(pos_t center, pos_unit_t radius)
 {
-	if(!aoi_impl)
+	if(!m_aoi_impl)
 	{
 		return {};
 	}
-	return entity_vec_to_guid(aoi_impl->entity_in_circle(center, radius));
+	return entity_vec_to_guid(m_aoi_impl->entity_in_circle(center, radius));
 }
 
 std::vector<guid_t> aoi_manager::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)
 {
-	if(!aoi_impl)
+	if(!m_aoi_impl)
 	{
 		return {};
 	}
-	return entity_vec_to_guid(aoi_impl->entity_in_cylinder(center, radius, height));
+	return entity_vec_to_guid(m_aoi_impl->entity_in_cylinder(center, radius, height));
 }
 
 std::vector<guid_t> aoi_manager::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)
 {
-	if(!aoi_impl)
+	if(!m_aoi_impl)
 	{
 		return {};
 	}
-	return entity_vec_to_guid(aoi_impl->entity_in_rectangle(center, x_width, z_width));
+	return entity_vec_to_guid(m_aoi_impl->entity_in_rectangle(center, x_width, z_width));
 }
 
 std::vector<guid_t> aoi_manager::entity_in_square(pos_t center, pos_unit_t width)
@@ -369,16 +370,16 @@ std::vector<guid_t> aoi_manager::entity_in_square(pos_t center, pos_unit_t width
 
 std::vector<guid_t> aoi_manager::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)
 {
-	if(!aoi_impl)
+	if(!m_aoi_impl)
 	{
 		return {};
 	}
-	return entity_vec_to_guid(aoi_impl->entity_in_cuboid(center, x_width, z_width, y_height));
+	return entity_vec_to_guid(m_aoi_impl->entity_in_cuboid(center, x_width, z_width, y_height));
 }
 
 std::vector<guid_t> aoi_manager::entity_in_cube(pos_t center, pos_unit_t width)
 {
-	return entity_vec_to_guid(aoi_impl->entity_in_cuboid(center, width, width, width));
+	return entity_vec_to_guid(m_aoi_impl->entity_in_cuboid(center, width, width, width));
 }
 std::vector<guid_t> aoi_manager::entity_in_fan(pos_t center, pos_unit_t radius, float yaw, float yaw_range)
 {
@@ -390,7 +391,7 @@ std::vector<guid_t> aoi_manager::entity_in_fan(pos_t center, pos_unit_t radius, 
 	{
 		return {};
 	}
-	auto circle_entities = aoi_impl->entity_in_circle(center, radius);
+	auto circle_entities = m_aoi_impl->entity_in_circle(center, radius);
 	std::vector<guid_t> result;
 	result.reserve(circle_entities.size() / 2 + 1);
 	for(auto one_ent: circle_entities)
@@ -432,9 +433,9 @@ void aoi_manager::dump(std::ostream& out_debug) const
 
 	}
 	out_debug << "aoi_impl begin" << std::endl;
-	if (aoi_impl)
+	if (m_aoi_impl)
 	{
-		aoi_impl->dump(out_debug);
+		m_aoi_impl->dump(out_debug);
 	}
 }
 
@@ -450,7 +451,7 @@ aoi_pos_idx aoi_manager::request_pos_entity_slot()
 	auto cur_entity = m_pos_entities[result.value];
 	if (!cur_entity)
 	{
-		cur_entity = new aoi_pos_entity(aoi_pos_idx(result), aoi_idx_t(m_pos_entities.size()));
+		cur_entity = new aoi_pos_entity(aoi_pos_idx(result), aoi_idx_t(m_radius_entities.size()));
 
 		m_pos_entities[result.value] = cur_entity;
 	}
@@ -462,9 +463,33 @@ void aoi_manager::renounce_pos_entity_idx(aoi_pos_idx pos_idx)
 	m_avail_pos_slots.push_back(pos_idx);
 }
 
+aoi_radius_idx aoi_manager::request_radius_entity_slot()
+{
+	if (m_avail_radius_slots.empty())
+	{
+		return aoi_radius_idx{ 0 };
+	}
+	auto result = m_avail_radius_slots.back();
+	m_avail_radius_slots.pop_back();
+
+	auto cur_entity = m_radius_entities[result.value];
+	if (!cur_entity)
+	{
+		cur_entity = new aoi_radius_entity(m_is_radius_circle, aoi_radius_idx(result), aoi_idx_t(m_pos_entities.size()));
+
+		m_radius_entities[result.value] = cur_entity;
+	}
+	return result;
+}
+
+void aoi_manager::renounce_radius_entity_idx(aoi_radius_idx pos_idx)
+{
+	m_avail_radius_slots.push_back(pos_idx);
+}
+
 void aoi_manager::update()
 {
-	aoi_impl->update_all();
+	m_aoi_impl->update_all();
 	// 计算好新的info之后 才能触发callback
 	m_update_pos_entities = m_active_pos_entities;
 	for (auto one_pos_entity : m_update_pos_entities)

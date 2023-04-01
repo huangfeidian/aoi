@@ -181,16 +181,16 @@ bool check_aoi_result(const std::vector<std::unordered_map<guid_t, std::array<st
 	return true;
 }
 
-std::vector<aoi_manager*> create_aoi_mgrs(std::uint32_t max_entity_size, pos_unit_t max_aoi_radius, pos_unit_t min_aoi_radius, pos_t border_min, pos_t border_max)
+std::vector<aoi_manager*> create_aoi_mgrs(std::uint32_t max_entity_size, pos_unit_t m_max_aoi_radius, pos_unit_t min_aoi_radius, pos_t border_min, pos_t border_max)
 {
 	std::uint32_t grid_block_size = 4096;
 	std::uint32_t grid_size = 100;
-	auto grid_impl = new grid_aoi(max_entity_size, max_aoi_radius, border_min, border_max, grid_size, grid_block_size);
-	auto list_impl = new list_2d_aoi(max_entity_size, max_aoi_radius, border_min, border_max);
-	auto brute_impl = new brute_aoi(max_entity_size, max_aoi_radius, border_min, border_max);
-	auto grid_aoi_mgr = new aoi_manager(grid_impl, max_entity_size, max_aoi_radius, border_min, border_max);
-	auto list_aoi_mgr = new aoi_manager(list_impl, max_entity_size, max_aoi_radius, border_min, border_max);
-	auto brute_aoi_mgr = new aoi_manager(brute_impl, max_entity_size, max_aoi_radius, border_min, border_max);
+	auto grid_impl = new grid_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max, grid_size, grid_block_size);
+	auto list_impl = new list_2d_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max);
+	auto brute_impl = new brute_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max);
+	auto grid_aoi_mgr = new aoi_manager(grid_impl, max_entity_size, m_max_aoi_radius, border_min, border_max);
+	auto list_aoi_mgr = new aoi_manager(list_impl, max_entity_size, m_max_aoi_radius, border_min, border_max);
+	auto brute_aoi_mgr = new aoi_manager(brute_impl, max_entity_size, m_max_aoi_radius, border_min, border_max);
 	std::vector<aoi_manager*> total_aoi_mgrs{ brute_aoi_mgr, grid_aoi_mgr, list_aoi_mgr };
 	return total_aoi_mgrs;
 }
@@ -518,7 +518,7 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 void test_traceback()
 {
 	std::uint32_t max_entity_size = 2;
-	float max_aoi_radius = 120.0f;
+	float m_max_aoi_radius = 120.0f;
 	float min_aoi_radius = 20.0f;
 	pos_t border_min{ -1000.0f, -1000.0f, -1000.0f };
 	pos_t border_max{ 1000.0f, 1000.0f, 1000.0f };
@@ -534,14 +534,14 @@ void test_traceback()
 	temp_pos[1] = 0;
 	temp_pos[2] = -592.094f;
 	entity_diffs.emplace_back(0, temp_pos);
-	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
+	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, m_max_aoi_radius, min_aoi_radius, border_min, border_max);
 	test_move_speed(total_aoi_mgrs, entity_poses, entity_radiuses, entity_diffs);
 	destroy_aoi_mgrs(total_aoi_mgrs);
 }
 int main()
 {
 	std::uint32_t max_entity_size = 1000;
-	float max_aoi_radius = 120.0f;
+	float m_max_aoi_radius = 120.0f;
 	float min_aoi_radius = 20.0f;
 	pos_t border_min{ -10000.0f, -10000.0f, -10000.0f };
 	pos_t border_max{ 10000.0f, 10000.0f, 10000.0f };
@@ -599,8 +599,8 @@ int main()
 	{
 		std::vector<pos_t> entity_poses;
 		std::vector<pos_unit_t> entity_radius;
-		create_entity_poses(border_min, border_max, max_entity_size, max_aoi_radius, entity_poses, entity_radius);
-		auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
+		create_entity_poses(border_min, border_max, max_entity_size, m_max_aoi_radius, entity_poses, entity_radius);
+		auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, m_max_aoi_radius, min_aoi_radius, border_min, border_max);
 		auto move_diffs = create_entity_diffs(entity_poses, entity_radius, 0.1f, 1000);
 		if (!test_move_speed(total_aoi_mgrs, entity_poses, entity_radius, move_diffs))
 		{

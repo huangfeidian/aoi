@@ -94,7 +94,7 @@ namespace spiritsaway::aoi
 	public:
 		friend class aoi_pos_entity;
 		const aoi_radius_idx m_radius_idx; // 在aoi系统里的唯一标识符
-
+		const bool m_is_radius_circle; // 是否用圆来判断半径
 
 
 	private:
@@ -108,6 +108,7 @@ namespace spiritsaway::aoi
 		
 		aoi_radius_controler m_aoi_radius_ctrl;
 		aoi_pos_entity* m_owner = nullptr;
+		
 	public:
 		aoi_radius_idx radius_idx() const
 		{
@@ -134,9 +135,10 @@ namespace spiritsaway::aoi
 			return m_aoi_radius_ctrl.radius;
 		}
 	public:
-		aoi_radius_entity(aoi_radius_idx in_radius_idx, aoi_idx_t max_ent_sz)
+		aoi_radius_entity(bool is_radius_circle, aoi_radius_idx in_radius_idx, aoi_idx_t max_ent_sz)
 			: m_radius_idx(in_radius_idx)
 			, interest_in_bitset(max_ent_sz / 8 + 1)
+			, m_is_radius_circle(is_radius_circle)
 		{
 
 		}
@@ -148,6 +150,7 @@ namespace spiritsaway::aoi
 		{
 
 		}
+		bool check_radius(pos_unit_t diff_x, pos_unit_t diff_z) const;
 		bool check_height(pos_unit_t diff_height) const;
 		
 		const aoi_radius_controler& aoi_radius_ctrl() const
@@ -183,6 +186,7 @@ namespace spiritsaway::aoi
 		inline guid_t guid() const;
 		void activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl);
 		void deactivate();
+		void check_remove(); // 检查剩下的是否已经非法了
 
 
 		const pos_t& pos() const;
@@ -194,23 +198,21 @@ namespace spiritsaway::aoi
 	class aoi_pos_entity
 	{
 	private:
-		guid_t m_guid;
+		guid_t m_guid = 0;
 		const aoi_pos_idx m_pos_idx;
-		pos_t m_pos;// 自己的位置
-		std::unordered_set<aoi_radius_idx> m_interested_by;// 当前自己进入了那些entity的aoi 的guid集合
+		pos_t m_pos = { 0.0, 0.0, 0.0 };// 自己的位置
+		std::unordered_set<aoi_radius_idx> m_interested_by;// 当前自己进入了那些radius 的 radius_idx集合
 		std::vector<std::uint8_t> interested_by_bitset;
-		std::vector<std::uint8_t> force_interested_by_bitset;
-		std::unordered_set<aoi_radius_idx> m_force_interested_by;// 因为强制aoi而进入的其他entity的guid 集合
 		std::vector<aoi_radius_entity*> m_radius_entities; // 注册在当前pos上的所有radius radius从大到小排序
-		std::uint64_t m_interested_by_flag;// 自己能被哪些flag的radius关注
+		std::uint64_t m_interested_by_flag = 0;// 自己能被哪些flag的radius关注
 		std::vector<aoi_notify_info> m_aoi_notify_infos;
 		bool m_during_aoi_cb = false; // 避免在触发aoi cb时递归触发
 	public:
 		// 这个是aoi计算器所需的数据 只在计算器内部使用
 		void* cacl_data = nullptr;
 
-		aoi_pos_entity(aoi_pos_idx in_pos_idx, aoi_idx_t max_ent_sz)
-			: interested_by_bitset(max_ent_sz/8 + 1)
+		aoi_pos_entity(aoi_pos_idx in_pos_idx, aoi_idx_t max_radius_sz)
+			: interested_by_bitset(max_radius_sz /8 + 1)
 			, m_pos_idx(in_pos_idx)
 		{
 
@@ -251,10 +253,7 @@ namespace spiritsaway::aoi
 			interested_by_bitset[byte_offset] ^= (1 << bit_offset);
 			m_interested_by.erase(other_aoi_idx);
 		}
-		inline const std::unordered_set<aoi_radius_idx>& force_interested_by() const
-		{
-			return m_force_interested_by;
-		}
+
 		guid_t guid() const
 		{
 			return m_guid;
@@ -264,8 +263,7 @@ namespace spiritsaway::aoi
 		{
 			return m_interested_by_flag;
 		}
-		void add_force_interested_by(aoi_radius_idx radius_idx);
-		void remove_force_interested_by(aoi_radius_idx radius_idx);
+
 		void activate(const pos_t& in_pos, std::uint64_t in_interested_by_flag, guid_t in_guid);
 		void deactivate();
 		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl);

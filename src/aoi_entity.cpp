@@ -1,6 +1,25 @@
 #include "aoi_entity.h"
 
 using namespace spiritsaway::aoi;
+
+bool aoi_radius_entity::check_radius(pos_unit_t diff_x, pos_unit_t diff_z) const
+{
+    if (m_is_radius_circle)
+    {
+        if ((diff_x * diff_x + diff_z * diff_z) > m_aoi_radius_ctrl.radius * m_aoi_radius_ctrl.radius)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if (std::abs(diff_x) > m_aoi_radius_ctrl.radius || std::abs(diff_z) > m_aoi_radius_ctrl.radius)
+        {
+            return false;
+        }
+    }
+    return true;
+}
 bool aoi_radius_entity::pos_in_aoi_radius(const aoi_pos_entity& other) const
 {
     const auto& self_pos = m_owner->pos();
@@ -8,11 +27,9 @@ bool aoi_radius_entity::pos_in_aoi_radius(const aoi_pos_entity& other) const
     auto diff_x = self_pos[0] - other_pos[0];
     auto diff_y = (self_pos[1] - other_pos[1]) * -1;
     auto diff_z = self_pos[2] - other_pos[2];
-    if((diff_x * diff_x + diff_z * diff_z) > m_aoi_radius_ctrl.radius * m_aoi_radius_ctrl.radius)
-    {
-        return false;
-    }
-    return check_height(diff_y);
+    
+   
+    return check_radius(diff_x, diff_z) && check_height(diff_y);
 }
 
 bool aoi_radius_entity::check_height(pos_unit_t diff_y) const
@@ -99,7 +116,7 @@ bool aoi_radius_entity::enter_by_force(aoi_pos_entity& other)
     
 
     m_force_interest_in[other.pos_idx()] = &other;
-    other.add_force_interested_by(m_radius_idx);
+    // other.add_force_interested_by(m_radius_idx);
     enter_impl(other);
     return true;
     
@@ -218,14 +235,13 @@ void aoi_pos_entity::check_add(aoi_pos_entity* other)
     auto diff_x = m_pos[0] - other->pos()[0];
     auto diff_y = (m_pos[1] - other->pos()[1]) * -1;
     auto diff_z = m_pos[2] - other->pos()[2];
-    auto diff_radius = std::sqrt(diff_x * diff_x + diff_z * diff_z);
     for (auto one_radius_entity : m_radius_entities)
     {
-
-        if (!(one_radius_entity->aoi_radius_ctrl().radius < diff_radius))
+        if (!one_radius_entity->check_radius(diff_x, diff_z))
         {
             break;
         }
+
         if (!one_radius_entity->check_height(diff_y))
         {
             continue;
@@ -236,6 +252,44 @@ void aoi_pos_entity::check_add(aoi_pos_entity* other)
     }
     
 }
+
+void aoi_radius_entity::check_remove()
+{
+    auto m_pos = pos();
+    auto temp_iter = m_interest_in.begin();
+    while (temp_iter != m_interest_in.end())
+    {
+        auto other = temp_iter->second;
+        bool should_leave = false;
+        do
+        {
+            if (m_force_interest_in.find(temp_iter->first) != m_force_interest_in.end())
+            {
+                break;
+            }
+            if (!pos_in_aoi_radius(*temp_iter->second))
+            {
+                should_leave = true;
+                break;
+            }
+            if (!check_flag(*other))
+            {
+                should_leave = true;
+                break;
+            }
+        } while (0);
+        if (should_leave)
+        {
+            temp_iter++;
+            leave_by_pos(*other);
+        }
+        else
+        {
+            temp_iter++;
+        }
+
+    }
+}
 void aoi_pos_entity::check_remove()
 {
 
@@ -243,95 +297,19 @@ void aoi_pos_entity::check_remove()
     for (auto one_radius_entity : m_radius_entities)
     {
         
-        auto temp_iter = one_radius_entity->m_interest_in.begin();
-        while (temp_iter != one_radius_entity->m_interest_in.end())
-        {
-            auto other = temp_iter->second;
-            bool should_leave = false;
-            do 
-            {
-                if (one_radius_entity->m_force_interest_in.find(temp_iter->first) != one_radius_entity->m_force_interest_in.end())
-                {
-                    break;
-                }
-                auto diff_x = m_pos[0] - other->pos()[0];
-                auto diff_y = (m_pos[1] - other->pos()[1]) * -1;
-                auto diff_z = m_pos[2] - other->pos()[2];
-                auto diff_radius = std::sqrt(diff_x * diff_x + diff_z * diff_z);
-                if (!(one_radius_entity->aoi_radius_ctrl().radius < diff_radius))
-                {
-                    should_leave = true;
-                    break;
-                }
-                if (!one_radius_entity->check_height(diff_y))
-                {
-                    should_leave = true;
-                    break;
-                }
-                if (!one_radius_entity->check_flag(*other))
-                {
-                    should_leave = true;
-                    break;
-                }
-            } while (0);
-            if (should_leave)
-            {
-                temp_iter++;
-                one_radius_entity->leave_by_pos(*other);
-            }
-            else
-            {
-                temp_iter++;
-            }
-
-        }
+        
     }
 }
 
 void aoi_pos_entity::deactivate()
 {
     m_aoi_notify_infos.clear();
-    //std::vector<aoi_idx_t> temp;
-    //temp = cur_entity->force_interest_in();
-    //for (auto one_aoi_idx : temp)
-    //{
-
-    //    cur_entity->leave_by_force(*m_entities[one_aoi_idx]);
-    //}
-    //temp = cur_entity->force_interested_by();
-    //for (auto one_aoi_idx : temp)
-    //{
-    //    m_entities[one_aoi_idx]->leave_by_force(*cur_entity);
-    //}
-
-    //temp = cur_entity->interest_in();
-    //for (auto one_aoi_idx : temp)
-    //{
-
-    //    cur_entity->leave_impl(*m_entities[one_aoi_idx]);
-    //}
-    //temp = cur_entity->interested_by();
-    //for (auto one_aoi_idx : temp)
-    //{
-    //    m_entities[one_aoi_idx]->leave_impl(*cur_entity);
-
-    //}
+    m_radius_entities.clear();
+    m_interested_by.clear();
+    
 }
 
-void aoi_pos_entity::add_force_interested_by(aoi_radius_idx radius_idx)
-{
-    auto byte_offset = radius_idx.value / 8;
-    auto bit_offset = radius_idx.value % 8;
-    force_interested_by_bitset[byte_offset] |= (1 << bit_offset);
-    m_force_interested_by.insert(radius_idx);
-}
-void aoi_pos_entity::remove_force_interested_by(aoi_radius_idx radius_idx)
-{
-    auto byte_offset = radius_idx.value / 8;
-    auto bit_offset = radius_idx.value % 8;
-    force_interested_by_bitset[byte_offset] ^= (1 << bit_offset);
-    m_force_interested_by.erase(radius_idx);
-}
+
 
 pos_unit_t aoi_pos_entity::max_radius() const
 {
