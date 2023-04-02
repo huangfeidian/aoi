@@ -2,20 +2,20 @@
 #include <cmath>
 #include <iostream>
 using namespace spiritsaway::aoi;
-list_2d_aoi::list_2d_aoi(aoi_idx_t in_max_agent, pos_unit_t in_max_aoi_radius, pos_t in_border_min, pos_t in_border_max)
+list_2d_aoi::list_2d_aoi(aoi_idx_t in_max_agent,  aoi_idx_t in_max_radius_size, pos_unit_t in_max_aoi_radius, pos_t in_border_min, pos_t in_border_max)
 : aoi_interface(in_max_agent, in_max_aoi_radius, in_border_min, in_border_max)
-, x_axis(in_max_agent + 1, in_max_aoi_radius, 0, in_border_min[0], in_border_max[0])
-, z_axis(in_max_agent + 1, in_max_aoi_radius, 2, in_border_min[2], in_border_max[2])
-, m_entity_byteset(in_max_agent + 1)
+, m_x_axis(in_max_agent, in_max_radius_size, in_max_aoi_radius, 0, in_border_min[0], in_border_max[0])
+, m_z_axis(in_max_agent, in_max_radius_size, in_max_aoi_radius, 2, in_border_min[2], in_border_max[2])
+, m_entity_byteset(in_max_agent)
 {
 
 }
 bool list_2d_aoi::add_pos_entity(aoi_pos_entity* cur_entity)
 {
 	
-	x_axis.insert_pos_entity(cur_entity);
-	z_axis.insert_pos_entity(cur_entity);
-
+	m_x_axis.insert_pos_entity(cur_entity);
+	m_z_axis.insert_pos_entity(cur_entity);
+	m_pos_entity_num++;
 	return true;
 }
 
@@ -23,18 +23,18 @@ bool list_2d_aoi::remove_pos_entity(aoi_pos_entity* cur_entity)
 {
 	
 
-	x_axis.remove_pos_entity(cur_entity);
-	z_axis.remove_pos_entity(cur_entity);
-
+	m_x_axis.remove_pos_entity(cur_entity);
+	m_z_axis.remove_pos_entity(cur_entity);
+	m_pos_entity_num--;
 	return true;
 }
 
 bool list_2d_aoi::add_radius_entity(aoi_radius_entity* cur_entity)
 {
 
-	x_axis.insert_radius_entity(cur_entity);
-	z_axis.insert_radius_entity(cur_entity);
-
+	m_x_axis.insert_radius_entity(cur_entity);
+	m_z_axis.insert_radius_entity(cur_entity);
+	m_radius_entity_num++;
 	return true;
 }
 
@@ -42,9 +42,9 @@ bool list_2d_aoi::remove_radius_entity(aoi_radius_entity* cur_entity)
 {
 
 
-	x_axis.remove_radius_entity(cur_entity);
-	z_axis.remove_radius_entity(cur_entity);
-
+	m_x_axis.remove_radius_entity(cur_entity);
+	m_z_axis.remove_radius_entity(cur_entity);
+	m_radius_entity_num--;
 	return true;
 }
 
@@ -53,8 +53,8 @@ void list_2d_aoi::on_radius_update(aoi_radius_entity* cur_entity, pos_unit_t rad
 	auto delta_radius = (int)(cur_entity->radius()) - radius;
 	cur_entity->set_radius(radius);
 
-	x_axis.update_entity_radius(cur_entity, delta_radius);
-	z_axis.update_entity_radius(cur_entity, delta_radius);
+	m_x_axis.update_entity_radius(cur_entity, delta_radius);
+	m_z_axis.update_entity_radius(cur_entity, delta_radius);
 
 }
 
@@ -63,14 +63,21 @@ void list_2d_aoi::on_position_update(aoi_pos_entity* cur_entity, pos_t new_pos)
 	auto pre_pos = cur_entity->pos();
 	cur_entity->set_pos(new_pos);
 
-	x_axis.update_entity_pos(cur_entity, new_pos[0] - pre_pos[0]);
-	z_axis.update_entity_pos(cur_entity, new_pos[2] - pre_pos[2]);
+	m_x_axis.update_entity_pos(cur_entity, new_pos[0] - pre_pos[0]);
+	m_z_axis.update_entity_pos(cur_entity, new_pos[2] - pre_pos[2]);
 	
 }
 
 void list_2d_aoi::update_all()
 {
-
+	m_dirty_count++;
+	if (m_dirty_count * m_dirty_count > (m_pos_entity_num + m_radius_entity_num + 100))
+	{
+		m_x_axis.update_anchors();
+		m_z_axis.update_anchors();
+		m_dirty_count = 0;
+		return;
+	}
 }
 std::vector<aoi_pos_entity*> list_2d_aoi::merge_result(const std::vector<aoi_pos_entity*>& axis_x_result, const std::vector<aoi_pos_entity*>& axis_z_result) const
 {
@@ -100,15 +107,15 @@ std::vector<aoi_pos_entity*> list_2d_aoi::merge_result(const std::vector<aoi_pos
 }
 std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const
 {
-	auto axis_x_result = x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
-	auto axis_z_result = z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
+	auto axis_x_result = m_x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
+	auto axis_z_result = m_z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
 	return merge_result(axis_x_result, axis_z_result);
 	
 }
 std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_unit_t radius)const
 {
-	auto axis_x_result = x_axis.entity_in_range(center[0] - radius, center[0] + radius);
-	auto axis_z_result = z_axis.entity_in_range(center[2] - radius, center[2] + radius);
+	auto axis_x_result = m_x_axis.entity_in_range(center[0] - radius, center[0] + radius);
+	auto axis_z_result = m_z_axis.entity_in_range(center[2] - radius, center[2] + radius);
 	auto  entity_result = merge_result(axis_x_result, axis_z_result);
 	std::vector<aoi_pos_entity*> find_result;
 	find_result.reserve(entity_result.size());
@@ -126,8 +133,8 @@ std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_uni
 }
 std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const
 {
-	auto axis_x_result = x_axis.entity_in_range(center[0] - radius, center[0] + radius);
-	auto axis_z_result = z_axis.entity_in_range(center[2] - radius, center[2] + radius);
+	auto axis_x_result = m_x_axis.entity_in_range(center[0] - radius, center[0] + radius);
+	auto axis_z_result = m_z_axis.entity_in_range(center[2] - radius, center[2] + radius);
 	auto  entity_result = merge_result(axis_x_result, axis_z_result);
 	std::vector<aoi_pos_entity*> find_result;
 	find_result.reserve(entity_result.size());
@@ -150,8 +157,8 @@ std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_u
 }
 std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
 {
-	auto axis_x_result = x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
-	auto axis_z_result = z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
+	auto axis_x_result = m_x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
+	auto axis_z_result = m_z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
 	auto  entity_result = merge_result(axis_x_result, axis_z_result);
 	
 	std::vector<aoi_pos_entity*> find_result;

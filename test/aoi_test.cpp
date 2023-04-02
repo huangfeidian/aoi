@@ -191,7 +191,7 @@ std::vector<aoi_manager*> create_aoi_mgrs(std::uint32_t max_entity_size, pos_uni
 	std::uint32_t grid_block_size = 4096;
 	std::uint32_t grid_size = 100;
 	auto grid_impl = new grid_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max, grid_size, grid_block_size);
-	auto list_impl = new list_2d_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max);
+	auto list_impl = new list_2d_aoi(max_entity_size, 4 * max_entity_size, m_max_aoi_radius, border_min, border_max);
 	auto brute_impl = new brute_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max);
 	auto brute_aoi_mgr = new aoi_manager(false, brute_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(0));
 	auto grid_aoi_mgr = new aoi_manager(false, grid_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(1));
@@ -268,7 +268,7 @@ std::vector<std::pair<guid_t, pos_t>> load_entity_move_info(const std::string& f
 	return result;
 
 }
-void create_entity_poses(pos_t border_min, pos_t border_max, std::uint32_t max_entity_count, pos_unit_t max_radius, std::vector<pos_t>& poses, std::vector<pos_unit_t>& radiuses, float range_scale = 0.5)
+void create_entity_poses(pos_t border_min, pos_t border_max, std::uint32_t m_max_entity_count, pos_unit_t m_max_radius, std::vector<pos_t>& poses, std::vector<pos_unit_t>& radiuses, float range_scale = 0.5)
 {
 	std::random_device r;
 	std::default_random_engine e1(r());
@@ -276,15 +276,15 @@ void create_entity_poses(pos_t border_min, pos_t border_max, std::uint32_t max_e
 	auto x_scale = range_scale* (border_max[0] - border_min[0]) / 20000;
 	auto z_scale = range_scale * (border_max[2] - border_min[2]) / 20000;
 	pos_t middle{ border_min[0] / 2 + border_max[0] / 2, border_min[1] / 2 + border_max[1] / 2, border_min[2] / 2 + border_max[2] / 2 };
-	int half_radius = int(max_radius) / 2;
-	poses = std::vector<pos_t>(max_entity_count);
-	radiuses = std::vector<pos_unit_t>(max_entity_count);
+	int half_radius = int(m_max_radius) / 2;
+	poses = std::vector<pos_t>(m_max_entity_count);
+	radiuses = std::vector<pos_unit_t>(m_max_entity_count);
 	//for (guid_t i = 0; i < max_entity_count; i++)
 	//{
 	//	poses[i] = pos_t{ middle[0] + uniform_dist(e1) * x_scale, middle[1], middle[2] + uniform_dist(e1) * z_scale };
 	//	radiuses[i] = (i * 1234) % half_radius + 0.2f * half_radius;
 	//}
-	for (int i = 0; i < max_entity_count; i++)
+	for (std::uint32_t i = 0; i < m_max_entity_count; i++)
 	{
 		poses[i] = pos_t{ 1.0f * i, 0.0f, 0.0f};
 		radiuses[i] = 100.0f;

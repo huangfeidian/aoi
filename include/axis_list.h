@@ -67,31 +67,29 @@ namespace spiritsaway::aoi
 	class axis_list
 	{
 	private:
-		frozen_pool<list_node> nodes_buffer;
-		list_node head;
-		list_node tail;
-		std::vector<list_node*> nodes_for_pos;
-		std::vector<std::pair<list_node*, list_node*>> nodes_for_radius;
-		std::vector<list_node*> anchors;
-		std::vector<list_node> anchor_buffer;
-		std::vector<pos_unit_t> anchor_poses;
-		const std::uint32_t node_per_anchor;
-		const std::uint32_t max_entity_count;
-		const pos_unit_t min_pos;
-		const pos_unit_t max_pos;
-		const pos_unit_t max_radius;
-		const int xz_pos_idx;
-		sweep_result sweep_buffer[3];
-		std::uint32_t dirty_count = 0;
+		frozen_pool<list_node> m_nodes_buffer;
+		list_node m_head;
+		list_node m_tail;
+		std::vector<list_node*> m_nodes_for_pos;
+		std::vector<std::pair<list_node*, list_node*>> m_nodes_for_radius;
+		std::vector<list_node*> m_nodes_for_anchor;
+		std::vector<list_node> m_anchor_buffer;
+		std::vector<pos_unit_t> m_anchor_poses;
+		const std::uint32_t m_node_per_anchor;
+		const std::uint32_t m_max_entity_count;
+		const pos_unit_t m_min_pos;
+		const pos_unit_t m_max_pos;
+		const pos_unit_t m_max_radius;
+		const int m_xz_pos_idx;
+		sweep_result m_sweep_buffer[3];
 		void insert_before(list_node* next, list_node* cur);
-		void remove(list_node* cur);
+		void remove_node(list_node* cur);
 		void move_forward(list_node* cur, sweep_result& visited_nodes, std::uint8_t flag);
 		void move_backward(list_node* cur, sweep_result& visited_nodes, std::uint8_t flag);
 		list_node* find_boundary(pos_unit_t pos, bool is_lower) const;
 		void insert_node(list_node* cur, bool is_lower);
-		void check_update_anchors();
 	public:
-		axis_list(std::uint32_t max_entity_count, pos_unit_t max_aoi_radius, int xz_pos_idx, pos_unit_t min_pos, pos_unit_t max_pos);
+		axis_list(std::uint32_t max_entity_count,std::uint32_t max_radius_count, pos_unit_t max_aoi_radius, int xz_pos_idx, pos_unit_t min_pos, pos_unit_t max_pos);
 		void update_anchors();
 		void insert_pos_entity(aoi_pos_entity* pos_entity);
 

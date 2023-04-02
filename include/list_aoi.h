@@ -12,11 +12,14 @@ namespace spiritsaway::aoi
 	class list_2d_aoi : public aoi_interface
 	{
 	private:
-		axis_list x_axis;
-		axis_list z_axis;
+		axis_list m_x_axis;
+		axis_list m_z_axis;
 		mutable std::vector<std::uint8_t> m_entity_byteset;
+		std::uint32_t m_dirty_count = 0; // 出发子aoi list的anchor更新
+		std::uint32_t m_pos_entity_num = 0;
+		std::uint32_t m_radius_entity_num = 0;
 	public:
-		list_2d_aoi(aoi_idx_t max_entity_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max);
+		list_2d_aoi(aoi_idx_t max_entity_size, aoi_idx_t max_radius_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max);
 		bool add_pos_entity(aoi_pos_entity* cur_entity) override;
 		bool remove_pos_entity(aoi_pos_entity* cur_entity) override;
 		bool add_radius_entity(aoi_radius_entity* cur_entity) override;
