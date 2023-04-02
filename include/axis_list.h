@@ -100,5 +100,6 @@ namespace spiritsaway::aoi
 		void update_entity_pos(aoi_pos_entity* pos_entity, pos_unit_t offset);
 		void update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_t delta_radius);
 		std::vector<aoi_pos_entity*> entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const;
+		void dump(std::ostream& out_debug) const;
 	};
 }

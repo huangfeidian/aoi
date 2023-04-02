@@ -178,23 +178,8 @@ std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_uni
 
 void list_2d_aoi::dump(std::ostream& out_debug) const
 {
-	//out_debug << "x_aoi list is" << std::endl;
-	//x_axis.dump(out_debug);
-	//out_debug << "z_aoi list is" << std::endl;
-	//auto result = z_axis.dump(out_debug);
-	//for (auto one_item : result)
-	//{
-	//	out_debug << "xz_interest_in for guid " << one_item->entity->guid() << " begin" << std::endl;
-	//	for (auto one_guid : one_item->xz_interest_in)
-	//	{
-	//		out_debug << one_guid->guid() << ", ";
-	//	}
-	//	out_debug << std::endl;
-	//	out_debug << "xz_interested_by for guid " << one_item->entity->guid() << " begin" << std::endl;
-	//	for (auto one_guid : one_item->xz_interested_by)
-	//	{
-	//		out_debug << one_guid->guid() << ", ";
-	//	}
-	//	out_debug << std::endl;
-	//}
+	out_debug << "x_aoi list is" << std::endl;
+	m_x_axis.dump(out_debug);
+	out_debug << "z_aoi list is" << std::endl;
+	m_z_axis.dump(out_debug);
 }

@@ -44,7 +44,7 @@ bool aoi_radius_entity::check_height(pos_unit_t diff_y) const
 bool aoi_radius_entity::check_flag(const aoi_pos_entity& other) const
 {
     auto other_flag = other.interested_by_flag();
-    if (other_flag | m_aoi_radius_ctrl.forbid_flag)
+    if (other_flag & m_aoi_radius_ctrl.forbid_flag)
     {
         // 不能携带forbid flag里任何一个bit
         return false;
@@ -202,7 +202,7 @@ bool aoi_radius_entity::try_leave(aoi_pos_entity& other)
     return false;
 }
 
-void aoi_pos_entity::activate(const pos_t& in_pos, std::uint64_t in_interested_by_flag, guid_t in_guid)
+void aoi_pos_entity::activate(const pos_t& in_pos, guid_t in_guid, std::uint64_t in_interested_by_flag)
 {
     m_pos = in_pos;
     m_guid = in_guid;
@@ -351,6 +351,8 @@ void aoi_pos_entity::add_aoi_notify(const aoi_pos_entity& other, aoi_radius_idx 
     new_notify_info.is_enter = is_enter;
     new_notify_info.other_guid = other.guid();
     new_notify_info.other_pos_idx = other.pos_idx();
+    new_notify_info.self_radius_idx = radius_idx;
+    m_aoi_notify_infos.push_back(new_notify_info);
 }
 void aoi_pos_entity::invoke_aoi_cb(const std::function<void(guid_t, const std::vector<aoi_notify_info>&)>& aoi_cb)
 {

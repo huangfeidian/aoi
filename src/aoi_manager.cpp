@@ -42,22 +42,22 @@ static std::vector<guid_t> entity_vec_to_guid(const std::vector<aoi_pos_entity*>
 	return result;
 }
 aoi_manager::aoi_manager(bool is_radius_circle, aoi_interface* in_aoi_impl, aoi_idx_t in_max_entity_size, aoi_idx_t in_max_radius_size,  pos_t in_min_pos, pos_t in_max_pos, std::function<void(guid_t, const std::vector<aoi_notify_info>&)> in_aoi_cb)
-: m_pos_entities(in_max_entity_size + 1, nullptr)
-, m_radius_entities(in_max_radius_size + 1, nullptr)
+: m_pos_entities(in_max_entity_size , nullptr)
+, m_radius_entities(in_max_radius_size, nullptr)
 , m_aoi_impl(in_aoi_impl)
 , m_min_pos(in_min_pos)
 , m_max_pos(in_max_pos)
 , m_aoi_cb(in_aoi_cb)
 , m_is_radius_circle(is_radius_circle)
 {
-	m_avail_pos_slots = std::vector<aoi_pos_idx>(in_max_entity_size);
+	m_avail_pos_slots = std::vector<aoi_pos_idx>(in_max_entity_size-1);
 	for (aoi_idx_t i = 0; i < m_avail_pos_slots.size(); i++)
 	{
 		m_avail_pos_slots[i] = aoi_pos_idx{ aoi_idx_t(i + 1 )};
 	}
 	std::reverse(m_avail_pos_slots.begin(), m_avail_pos_slots.end());
 
-	m_avail_radius_slots = std::vector<aoi_radius_idx>(in_max_radius_size);
+	m_avail_radius_slots = std::vector<aoi_radius_idx>(in_max_radius_size-1);
 	for (aoi_idx_t i = 0; i < m_avail_radius_slots.size(); i++)
 	{
 		m_avail_radius_slots[i] = aoi_radius_idx{ aoi_idx_t(i + 1) };

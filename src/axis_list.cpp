@@ -410,4 +410,32 @@ void axis_list::update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_
 	
 }
 
+void axis_list::dump(std::ostream& out_debug) const
+{
+	auto cur_node = m_head.next;
+	while (cur_node != &m_tail)
+	{
+		out_debug << "type " << int(cur_node->node_type) << " pos " << cur_node->pos << " ";
+		switch (cur_node->node_type)
+		{
+		case list_node_type::center:
+		{
+			out_debug << " guid " << cur_node->pos_entity->guid() << " pos_idx " << cur_node->pos_entity->pos_idx().value;
+			break;
+		}
+		case list_node_type::left:
+		case list_node_type::right:
+		{
+			out_debug << " guid " << cur_node->radius_entity->guid() << " radius_idx " << cur_node->radius_entity->radius_idx().value;
+			break;
+		}
+		default:
+			break;
+		}
+		out_debug << "\n";
+		cur_node = cur_node->next;
+	}
+
+}
+
 

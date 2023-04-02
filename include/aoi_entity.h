@@ -264,7 +264,7 @@ namespace spiritsaway::aoi
 			return m_interested_by_flag;
 		}
 
-		void activate(const pos_t& in_pos, std::uint64_t in_interested_by_flag, guid_t in_guid);
+		void activate(const pos_t& in_pos, guid_t in_guid, std::uint64_t in_interested_by_flag);
 		void deactivate();
 		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl);
 

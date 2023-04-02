@@ -144,7 +144,7 @@ auto result_lambda = [](std::size_t i)
 	};
 };
 
-bool check_aoi_result(const std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>>& result, const std::vector<pos_t>& guid_positions, const std::vector<pos_unit_t>& guid_radius)
+bool check_aoi_result(const std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>>& result, const std::vector<pos_t>& guid_positions, const std::vector<pos_unit_t>& guid_radius, std::uint32_t mgr_sz)
 {
 	if (result.size() < 2)
 	{
@@ -167,7 +167,7 @@ bool check_aoi_result(const std::vector<std::unordered_map<guid_t, std::array<st
 		{
 			continue;
 		}
-		for (int i = 1; i < result.size(); i++)
+		for (int i = 1; i < mgr_sz; i++)
 		{
 			auto cur_iter = result[i].find(guid);
 			if (cur_iter == result[i].end())
@@ -186,13 +186,13 @@ bool check_aoi_result(const std::vector<std::unordered_map<guid_t, std::array<st
 	return true;
 }
 
-std::vector<aoi_manager*> create_aoi_mgrs(std::uint32_t max_entity_size, pos_unit_t m_max_aoi_radius, pos_unit_t min_aoi_radius, pos_t border_min, pos_t border_max)
+std::vector<aoi_manager*> create_aoi_mgrs(std::uint32_t max_entity_size, pos_unit_t max_aoi_radius, pos_unit_t min_aoi_radius, pos_t border_min, pos_t border_max)
 {
 	std::uint32_t grid_block_size = 4096;
 	std::uint32_t grid_size = 100;
-	auto grid_impl = new grid_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max, grid_size, grid_block_size);
-	auto list_impl = new list_2d_aoi(max_entity_size, 4 * max_entity_size, m_max_aoi_radius, border_min, border_max);
-	auto brute_impl = new brute_aoi(max_entity_size, m_max_aoi_radius, border_min, border_max);
+	auto grid_impl = new grid_aoi(max_entity_size, max_aoi_radius, border_min, border_max, grid_size, grid_block_size);
+	auto list_impl = new list_2d_aoi(max_entity_size, 4 * max_entity_size, max_aoi_radius, border_min, border_max);
+	auto brute_impl = new brute_aoi(max_entity_size, max_aoi_radius, border_min, border_max);
 	auto brute_aoi_mgr = new aoi_manager(false, brute_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(0));
 	auto grid_aoi_mgr = new aoi_manager(false, grid_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(1));
 	auto list_aoi_mgr = new aoi_manager(false, list_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda(2));
@@ -268,7 +268,7 @@ std::vector<std::pair<guid_t, pos_t>> load_entity_move_info(const std::string& f
 	return result;
 
 }
-void create_entity_poses(pos_t border_min, pos_t border_max, std::uint32_t m_max_entity_count, pos_unit_t m_max_radius, std::vector<pos_t>& poses, std::vector<pos_unit_t>& radiuses, float range_scale = 0.5)
+void create_entity_poses(pos_t border_min, pos_t border_max, std::uint32_t max_entity_count, pos_unit_t max_radius, std::vector<pos_t>& poses, std::vector<pos_unit_t>& radiuses, float range_scale = 0.5)
 {
 	std::random_device r;
 	std::default_random_engine e1(r());
@@ -276,15 +276,15 @@ void create_entity_poses(pos_t border_min, pos_t border_max, std::uint32_t m_max
 	auto x_scale = range_scale* (border_max[0] - border_min[0]) / 20000;
 	auto z_scale = range_scale * (border_max[2] - border_min[2]) / 20000;
 	pos_t middle{ border_min[0] / 2 + border_max[0] / 2, border_min[1] / 2 + border_max[1] / 2, border_min[2] / 2 + border_max[2] / 2 };
-	int half_radius = int(m_max_radius) / 2;
-	poses = std::vector<pos_t>(m_max_entity_count);
-	radiuses = std::vector<pos_unit_t>(m_max_entity_count);
+	int half_radius = int(max_radius) / 2;
+	poses = std::vector<pos_t>(max_entity_count);
+	radiuses = std::vector<pos_unit_t>(max_entity_count);
 	//for (guid_t i = 0; i < max_entity_count; i++)
 	//{
 	//	poses[i] = pos_t{ middle[0] + uniform_dist(e1) * x_scale, middle[1], middle[2] + uniform_dist(e1) * z_scale };
 	//	radiuses[i] = (i * 1234) % half_radius + 0.2f * half_radius;
 	//}
-	for (std::uint32_t i = 0; i < m_max_entity_count; i++)
+	for (std::uint32_t i = 0; i < max_entity_count; i++)
 	{
 		poses[i] = pos_t{ 1.0f * i, 0.0f, 0.0f};
 		radiuses[i] = 100.0f;
@@ -341,13 +341,13 @@ bool test_add(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_p
 		one_mgr->update();
 		report_cost(start, end, "update for aoi_mgr_" + std::to_string(i), __LINE__);
 	}
-	return check_aoi_result(aoi_results, entity_poses, entity_radiues);;
+	return check_aoi_result(aoi_results, entity_poses, entity_radiues, mgrs.size());;
 
 }
 
 bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_poses, const std::vector<pos_unit_t>& entity_radiues)
 {
-	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results(mgrs.size());
+
 	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
@@ -371,7 +371,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 
 		one_mgr->update();
 	}
-	if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
+	if (!check_aoi_result(aoi_results, entity_poses, entity_radiues, mgrs.size()))
 	{
 		std::cout << "test_delete fail in check_aoi_radius 1" << std::endl;
 		dump_aoi_mgrs(mgrs);
@@ -387,7 +387,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 			mgrs[i]->update();
 
 		}
-		if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
+		if (!check_aoi_result(aoi_results, entity_poses, entity_radiues, mgrs.size()))
 		{
 			std::cout << "test_delete fail to check aoi result 2 j is " <<j<< std::endl;
 			dump_aoi_mgrs(mgrs);
@@ -403,7 +403,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 bool test_trace(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_poses, const std::vector<pos_unit_t>& entity_radiues)
 {
 
-	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{mgrs.size() };
+
 	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
@@ -412,6 +412,7 @@ bool test_trace(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity
 	cur_aoi_radius_ctrl.any_flag = 1;
 	cur_aoi_radius_ctrl.forbid_flag = 0;
 	cur_aoi_radius_ctrl.need_flag = 1;
+	cur_aoi_radius_ctrl.max_interest_in = entity_poses.size() + 1;
 	for (guid_t j = 0; j < entity_poses.size(); j++)
 	{
 		for (std::size_t i = 0; i < mgrs.size(); i++)
@@ -420,9 +421,10 @@ bool test_trace(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity
 			auto cur_pos_idx = mgrs[i]->add_pos_entity(j, entity_poses[j], 1);
 			aoi_entity_idxes[i].push_back(cur_pos_idx);
 			mgrs[i]->add_radius_entity(cur_pos_idx, cur_aoi_radius_ctrl);
+			mgrs[i]->update();
 
 		}
-		if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
+		if (!check_aoi_result(aoi_results, entity_poses, entity_radiues, mgrs.size()))
 		{
 			std::cout << "fail to check aoi result" << std::endl;
 			dump_aoi_mgrs(mgrs);
@@ -458,7 +460,7 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 		}
 		one_mgr->update();
 	}
-	if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
+	if (!check_aoi_result(aoi_results, entity_poses, entity_radiues, mgrs.size()))
 	{
 		std::cout << "check_aoi_result fail in check move " << __LINE__ << std::endl;
 		dump_aoi_mgrs(mgrs);
@@ -479,7 +481,7 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 			one_mgr->change_entity_pos(aoi_entity_idxes[i][move_diffs[j].first], move_diffs[j].second);
 		}
 		entity_poses_dup[move_diffs[j].first] = move_diffs[j].second;
-		if (!check_aoi_result(aoi_results, entity_poses_dup, entity_radiues))
+		if (!check_aoi_result(aoi_results, entity_poses_dup, entity_radiues, mgrs.size()))
 		{
 			std::cout << "fail to check aoi result" << std::endl;
 			dump_aoi_mgrs(mgrs);
@@ -513,7 +515,7 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 		}
 		one_mgr->update();
 	}
-	if (!check_aoi_result(aoi_results, entity_poses, entity_radiues))
+	if (!check_aoi_result(aoi_results, entity_poses, entity_radiues, mgrs.size()))
 	{
 		std::cout << "check_aoi_result fail in check move " << __LINE__ << std::endl;
 		dump_aoi_mgrs(mgrs);
@@ -540,7 +542,7 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 	{
 		entity_pos_dup[one_item.first] = one_item.second;
 	}
-	if (!check_aoi_result(aoi_results, entity_pos_dup, entity_radiues))
+	if (!check_aoi_result(aoi_results, entity_pos_dup, entity_radiues, mgrs.size()))
 	{
 		std::cout << "check_aoi_result fail in phase 2 " << __LINE__ << std::endl;
 		dump_entity_poses(entity_poses, "begin_pos.txt");
@@ -555,7 +557,7 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 void test_traceback()
 {
 	std::uint32_t max_entity_size = 2;
-	float m_max_aoi_radius = 120.0f;
+	float max_aoi_radius = 120.0f;
 	float min_aoi_radius = 20.0f;
 	pos_t border_min{ -1000.0f, -1000.0f, -1000.0f };
 	pos_t border_max{ 1000.0f, 1000.0f, 1000.0f };
@@ -571,38 +573,38 @@ void test_traceback()
 	temp_pos[1] = 0;
 	temp_pos[2] = -592.094f;
 	entity_diffs.emplace_back(0, temp_pos);
-	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, m_max_aoi_radius, min_aoi_radius, border_min, border_max);
+	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
 	test_move_speed(total_aoi_mgrs, entity_poses, entity_radiuses, entity_diffs);
 	destroy_aoi_mgrs(total_aoi_mgrs);
 }
 int main()
 {
 	std::uint32_t max_entity_size = 1000;
-	float m_max_aoi_radius = 120.0f;
+	float max_aoi_radius = 120.0f;
 	float min_aoi_radius = 20.0f;
 	pos_t border_min{ -10000.0f, -10000.0f, -10000.0f };
 	pos_t border_max{ 10000.0f, 10000.0f, 10000.0f };
 
-	//for (std::size_t i = 0; i < 10; i++)
-	//{
-	//	std::vector<pos_t> entity_poses;
-	//	std::vector<pos_unit_t> entity_radius;
-	//	create_entity_poses(border_min, border_max, max_entity_size, max_aoi_radius, entity_poses, entity_radius);
-	//	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
-	//	if (!test_trace(total_aoi_mgrs, entity_poses, entity_radius))
-	//	{
-	//		std::cout << "fail in test_trace" << std::endl;
-	//		return false;
-	//	}
-	//	std::cout << "finish test_trace " << i << std::endl;
-	//	destroy_aoi_mgrs(total_aoi_mgrs);
-	//}
+	for (std::size_t i = 0; i < 10; i++)
+	{
+		std::vector<pos_t> entity_poses;
+		std::vector<pos_unit_t> entity_radius;
+		create_entity_poses(border_min, border_max, max_entity_size - 1, max_aoi_radius, entity_poses, entity_radius, 0.01);
+		auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
+		if (!test_trace(total_aoi_mgrs, entity_poses, entity_radius))
+		{
+			std::cout << "fail in test_trace" << std::endl;
+			return false;
+		}
+		std::cout << "finish test_trace " << i << std::endl;
+		destroy_aoi_mgrs(total_aoi_mgrs);
+	}
 
 	//for (std::size_t i = 0; i < 100; i++)
 	//{
 	//	std::vector<pos_t> entity_poses;
 	//	std::vector<pos_unit_t> entity_radius;
-	//	create_entity_poses(border_min, border_max, max_entity_size, max_aoi_radius, entity_poses, entity_radius);
+	//	create_entity_poses(border_min, border_max, max_entity_size - 1, max_aoi_radius, entity_poses, entity_radius);
 	//	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
 	//	if (!test_add(total_aoi_mgrs, entity_poses, entity_radius))
 	//	{
@@ -618,7 +620,7 @@ int main()
 	//{
 	//	std::vector<pos_t> entity_poses;
 	//	std::vector<pos_unit_t> entity_radius;
-	//	create_entity_poses(border_min, border_max, max_entity_size, max_aoi_radius, entity_poses, entity_radius);
+	//	create_entity_poses(border_min, border_max, max_entity_size - 1, max_aoi_radius, entity_poses, entity_radius);
 	//	// load_input(entity_poses, entity_radius);
 	//	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
 	//	if (!test_delete(total_aoi_mgrs, entity_poses, entity_radius))
@@ -632,21 +634,21 @@ int main()
 	//}
 
 
-	for (std::size_t i = 0; i < 100; i++)
-	{
-		std::vector<pos_t> entity_poses;
-		std::vector<pos_unit_t> entity_radius;
-		create_entity_poses(border_min, border_max, max_entity_size, m_max_aoi_radius, entity_poses, entity_radius);
-		auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, m_max_aoi_radius, min_aoi_radius, border_min, border_max);
-		auto move_diffs = create_entity_diffs(entity_poses, entity_radius, 0.1f, 1000);
-		if (!test_move_speed(total_aoi_mgrs, entity_poses, entity_radius, move_diffs))
-		{
-			std::cout << "fail in test_move_speed" << std::endl;
-			return false;
-		}
-		std::cout << "finish test_move_speed " << i << std::endl;
-		destroy_aoi_mgrs(total_aoi_mgrs);
-	}
+	//for (std::size_t i = 0; i < 100; i++)
+	//{
+	//	std::vector<pos_t> entity_poses;
+	//	std::vector<pos_unit_t> entity_radius;
+	//	create_entity_poses(border_min, border_max, max_entity_size - 1, max_aoi_radius, entity_poses, entity_radius);
+	//	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
+	//	auto move_diffs = create_entity_diffs(entity_poses, entity_radius, 0.1f, 1000);
+	//	if (!test_move_speed(total_aoi_mgrs, entity_poses, entity_radius, move_diffs))
+	//	{
+	//		std::cout << "fail in test_move_speed" << std::endl;
+	//		return false;
+	//	}
+	//	std::cout << "finish test_move_speed " << i << std::endl;
+	//	destroy_aoi_mgrs(total_aoi_mgrs);
+	//}
 	// 
 	//for (std::size_t i = 0; i < 10; i++)
 	//{
