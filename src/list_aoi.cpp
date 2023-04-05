@@ -48,13 +48,11 @@ bool list_2d_aoi::remove_radius_entity(aoi_radius_entity* cur_entity)
 	return true;
 }
 
-void list_2d_aoi::on_radius_update(aoi_radius_entity* cur_entity, pos_unit_t radius)
+void list_2d_aoi::on_radius_update(aoi_radius_entity* cur_entity, pos_unit_t diff_radius)
 {
-	auto delta_radius = (int)(cur_entity->radius()) - radius;
-	cur_entity->set_radius(radius);
 
-	m_x_axis.update_entity_radius(cur_entity, delta_radius);
-	m_z_axis.update_entity_radius(cur_entity, delta_radius);
+	m_x_axis.update_entity_radius(cur_entity, diff_radius);
+	m_z_axis.update_entity_radius(cur_entity, diff_radius);
 
 }
 

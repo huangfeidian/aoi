@@ -43,7 +43,7 @@ bool aoi_radius_entity::check_height(pos_unit_t diff_y) const
 
 bool aoi_radius_entity::check_flag(const aoi_pos_entity& other) const
 {
-    auto other_flag = other.interested_by_flag();
+    auto other_flag = other.entity_flag();
     if (other_flag & m_aoi_radius_ctrl.forbid_flag)
     {
         // 不能携带forbid flag里任何一个bit
@@ -98,7 +98,7 @@ void aoi_radius_entity::enter_impl(aoi_pos_entity& other)
 {		
 
     set_interest_in(&other);
-    other.set_interested_by(this->radius_idx());
+    other.set_interested_by(this);
     m_owner->add_aoi_notify(other, m_radius_idx, true);
 }
 
@@ -124,7 +124,7 @@ bool aoi_radius_entity::enter_by_force(aoi_pos_entity& other)
 void aoi_radius_entity::leave_impl(aoi_pos_entity& other)
 {
     remove_interest_in(&other);
-    other.remove_interested_by(this->m_radius_idx);
+    other.remove_interested_by(this);
     m_owner->add_aoi_notify(other, m_radius_idx, false);
 }
 bool aoi_radius_entity::leave_by_pos(aoi_pos_entity& other)
@@ -202,11 +202,11 @@ bool aoi_radius_entity::try_leave(aoi_pos_entity& other)
     return false;
 }
 
-void aoi_pos_entity::activate(const pos_t& in_pos, guid_t in_guid, std::uint64_t in_interested_by_flag)
+void aoi_pos_entity::activate(const pos_t& in_pos, guid_t in_guid, std::uint64_t in_entity_flag)
 {
     m_pos = in_pos;
     m_guid = in_guid;
-    m_interested_by_flag = in_interested_by_flag;
+    m_entity_flag = in_entity_flag;
 }
 
 void aoi_pos_entity::add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl)
@@ -261,6 +261,25 @@ void aoi_pos_entity::check_add(aoi_pos_entity* other)
     
 }
 
+bool aoi_radius_entity::check_remove(aoi_pos_entity* cur_pos_entity)
+{
+    if (m_force_interest_in.find(cur_pos_entity->pos_idx()) != m_force_interest_in.end())
+    {
+        return false;
+    }
+    if (!pos_in_aoi_radius(*cur_pos_entity))
+    {
+        leave_by_pos(*cur_pos_entity);
+        return true;
+    }
+    if (!check_flag(*cur_pos_entity))
+    {
+        leave_by_pos(*cur_pos_entity);
+        return true;
+    }
+    return false;
+}
+
 void aoi_radius_entity::check_remove()
 {
     auto m_pos = pos();
@@ -268,43 +287,18 @@ void aoi_radius_entity::check_remove()
     while (temp_iter != m_interest_in.end())
     {
         auto other = temp_iter->second;
-        bool should_leave = false;
-        do
-        {
-            if (m_force_interest_in.find(temp_iter->first) != m_force_interest_in.end())
-            {
-                break;
-            }
-            if (!pos_in_aoi_radius(*temp_iter->second))
-            {
-                should_leave = true;
-                break;
-            }
-            if (!check_flag(*other))
-            {
-                should_leave = true;
-                break;
-            }
-        } while (0);
-        if (should_leave)
-        {
-            temp_iter++;
-            leave_by_pos(*other);
-        }
-        else
-        {
-            temp_iter++;
-        }
-
+        temp_iter++;
+        check_remove(other);
     }
 }
+
 void aoi_pos_entity::check_remove()
 {
 
 
     for (auto one_radius_entity : m_radius_entities)
     {
-        
+        one_radius_entity->check_remove();
         
     }
 }
@@ -373,4 +367,47 @@ void aoi_pos_entity::invoke_aoi_cb(const std::function<void(guid_t, const std::v
     
     
     m_during_aoi_cb = false;
+}
+
+void aoi_radius_entity::change_aoi_ctrl(const aoi_radius_controler& new_aoi_ctrl)
+{
+    m_aoi_radius_ctrl = new_aoi_ctrl;
+    check_remove();
+}
+
+void aoi_pos_entity::change_aoi_ctrl(aoi_radius_idx cur_radius_idx, const aoi_radius_controler& new_aoi_ctrl)
+{
+    for (std::uint32_t i = 0; i < m_radius_entities.size(); i++)
+    {
+        if (m_radius_entities[i]->radius_idx().value == cur_radius_idx.value)
+        {
+            auto result = m_radius_entities[i];
+            result->change_aoi_ctrl(new_aoi_ctrl);
+            std::sort(m_radius_entities.begin(), m_radius_entities.end(), [](const aoi_radius_entity* a, const aoi_radius_entity* b)
+                {
+                    return a->aoi_radius_ctrl().radius > b->aoi_radius_ctrl().radius;
+                });
+            return;
+
+        }
+    }
+}
+
+void aoi_pos_entity::change_flag(std::uint64_t new_entity_flag)
+{
+    if (m_entity_flag == new_entity_flag)
+    {
+        return;
+    }
+    m_entity_flag = new_entity_flag;
+    auto m_pos = pos();
+    auto temp_iter = m_interested_by.begin();
+    while (temp_iter != m_interested_by.end())
+    {
+        auto other = *temp_iter;
+        temp_iter++;
+        other->check_remove(this);
+
+    }
+
 }

@@ -145,7 +145,7 @@ auto result_lambda = [](std::size_t i)
 	};
 };
 
-bool check_aoi_result(const std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>>& result, const std::vector<pos_t>& guid_positions, const std::vector<pos_unit_t>& guid_radius, std::uint32_t mgr_sz)
+bool check_aoi_result(const std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>>& result, const std::vector<pos_t>& guid_positions, const std::vector<pos_unit_t>& guid_radius, std::uint64_t mgr_sz)
 {
 	if (result.size() < 2)
 	{

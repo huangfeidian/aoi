@@ -37,9 +37,9 @@ void brute_aoi::on_position_update(aoi_pos_entity* entity, pos_t new_pos)
 	entity->set_pos(new_pos);
 }
 
-void brute_aoi::on_radius_update(aoi_radius_entity* entity, pos_unit_t new_radius)
+void brute_aoi::on_radius_update(aoi_radius_entity* entity, pos_unit_t diff_radius)
 {
-	entity->set_radius(new_radius);
+
 }
 void brute_aoi::update_all()
 {

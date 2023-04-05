@@ -107,7 +107,7 @@ bool aoi_manager::is_in_border(const pos_t& pos) const
 	return true;
 }
 
-aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::uint64_t in_interested_by_flag)
+aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::uint64_t in_entity_flag)
 {
 	if (!m_aoi_impl || !is_in_border(in_pos))
 	{
@@ -120,7 +120,7 @@ aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::u
 	}
 	auto cur_pos_entity = m_pos_entities[cur_aoi_pos_idx.value];
 	m_active_pos_entities.push_back(cur_pos_entity);
-	cur_pos_entity->activate(in_pos, guid, in_interested_by_flag);
+	cur_pos_entity->activate(in_pos, guid, in_entity_flag);
 	if (!m_aoi_impl->add_pos_entity(cur_pos_entity))
 	{
 		renounce_pos_entity_idx(cur_aoi_pos_idx);
@@ -248,10 +248,8 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 }
 
 
-bool aoi_manager::change_entity_radius(aoi_radius_idx radius_idx, pos_unit_t radius)
+bool aoi_manager::change_aoi_contrl(aoi_radius_idx radius_idx, const aoi_radius_controler& aoi_radius_ctrl)
 {
-
-
 	if (radius_idx.value >= m_radius_entities.size())
 	{
 		return false;
@@ -261,9 +259,12 @@ bool aoi_manager::change_entity_radius(aoi_radius_idx radius_idx, pos_unit_t rad
 	{
 		return false;
 	}
-	m_aoi_impl->on_radius_update(cur_entity, radius);
+	auto pre_radius = cur_entity->radius();
+	cur_entity->owner().change_aoi_ctrl(radius_idx, aoi_radius_ctrl);
+	m_aoi_impl->on_radius_update(cur_entity, aoi_radius_ctrl.radius - pre_radius);
 	return true;
 }
+
 
 bool aoi_manager::change_entity_pos(aoi_pos_idx pos_idx, pos_t pos)
 {
@@ -312,19 +313,7 @@ bool aoi_manager::remove_force_aoi(aoi_pos_idx from, aoi_radius_idx to)
 	}
 	return to_ent->leave_by_force(*from_ent);
 }
-const std::unordered_map<aoi_pos_idx, aoi_pos_entity*>& aoi_manager::interest_in(aoi_radius_idx radius_idx)const
-{
-	if (radius_idx.value >= m_radius_entities.size())
-	{
-		return m_invalid_pos_result;
-	}
-	auto cur_entity = m_radius_entities[radius_idx.value];
-	if (!cur_entity)
-	{
-		return m_invalid_pos_result;
-	}
-	return cur_entity->interest_in();
-}
+
 std::vector<guid_t> aoi_manager::interest_in_guids(aoi_radius_idx radius_idx) const
 {
 	if (radius_idx.value >= m_radius_entities.size())
@@ -345,19 +334,7 @@ std::vector<guid_t> aoi_manager::interest_in_guids(aoi_radius_idx radius_idx) co
 	}
 	return result;
 }
-const std::unordered_set<aoi_radius_idx>& aoi_manager::interested_by(aoi_pos_idx pos_idx)const
-{
-	if (pos_idx.value >= m_pos_entities.size())
-	{
-		return m_invalid_radius_result;
-	}
-	auto cur_entity = m_pos_entities[pos_idx.value];
-	if (!cur_entity)
-	{
-		return m_invalid_radius_result;
-	}
-	return cur_entity->interested_by();
-}
+
 
 std::vector<guid_t> aoi_manager::entity_in_circle(pos_t center, pos_unit_t radius)
 {
