@@ -237,12 +237,11 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 		return false;
 	}
 	m_aoi_impl->remove_radius_entity(cur_entity);
-
-	cur_entity->owner().remove_radius_entity(radius_idx);
-	cur_entity->deactivate();
-
+	auto pre_owner = &(cur_entity->owner());
+	pre_owner->remove_radius_entity(radius_idx);
+	
 	m_radius_entities_removed.insert(radius_idx.value);
-	cur_entity->owner().invoke_aoi_cb(m_aoi_cb);
+	pre_owner->invoke_aoi_cb(m_aoi_cb);
 
 	return true;
 

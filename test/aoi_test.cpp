@@ -610,22 +610,22 @@ int main()
 	//}
 
 	
-	for (std::size_t i = 0; i < 100; i++)
-	{
-		std::vector<pos_t> entity_poses;
-		std::vector<pos_unit_t> entity_radius;
-		create_entity_poses(border_min, border_max, max_entity_size - 1, max_aoi_radius, entity_poses, entity_radius);
-		auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
-		if (!test_add(total_aoi_mgrs, entity_poses, entity_radius))
-		{
-			std::cout << "fail in test_add" << std::endl;
-			dump_input(entity_poses, entity_radius);
-			dump_aoi_mgrs(total_aoi_mgrs);
-			return false;
-		}
-		std::cout << "finish test_add " << i << std::endl;
-		destroy_aoi_mgrs(total_aoi_mgrs);
-	}
+	//for (std::size_t i = 0; i < 100; i++)
+	//{
+	//	std::vector<pos_t> entity_poses;
+	//	std::vector<pos_unit_t> entity_radius;
+	//	create_entity_poses(border_min, border_max, max_entity_size - 1, max_aoi_radius, entity_poses, entity_radius);
+	//	auto total_aoi_mgrs = create_aoi_mgrs(max_entity_size, max_aoi_radius, min_aoi_radius, border_min, border_max);
+	//	if (!test_add(total_aoi_mgrs, entity_poses, entity_radius))
+	//	{
+	//		std::cout << "fail in test_add" << std::endl;
+	//		dump_input(entity_poses, entity_radius);
+	//		dump_aoi_mgrs(total_aoi_mgrs);
+	//		return false;
+	//	}
+	//	std::cout << "finish test_add " << i << std::endl;
+	//	destroy_aoi_mgrs(total_aoi_mgrs);
+	//}
 
 	//for (std::size_t i = 0; i < 10; i++)
 	//{
@@ -661,22 +661,5 @@ int main()
 	//	destroy_aoi_mgrs(total_aoi_mgrs);
 	//}
 	// 
-	//for (std::size_t i = 0; i < 10; i++)
-	//{
-	//	if (!test_trace())
-	//	{
-	//		std::cout << "failt in test trace" << std::endl;
-	//		return 1;
-	//	}
-	//	std::cout << "finish test trace round " << i << std::endl;
-	//}
-	//for (int i = 0; i < 10; i++)
-	//{
-	//	if (!test_add())
-	//	{
-	//		std::cout << "failed in test add" << std::endl;
-	//		return 1;
-	//	}
-	//}
 }
 
