@@ -374,3 +374,4 @@ void aoi_pos_entity::invoke_aoi_cb(const std::function<void(guid_t, const std::v
     
     m_during_aoi_cb = false;
 }
+

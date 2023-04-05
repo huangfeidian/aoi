@@ -183,7 +183,8 @@ namespace spiritsaway::aoi
 		bool try_enter(aoi_pos_entity& other);
 		bool try_leave(aoi_pos_entity& other);
 
-		inline guid_t guid() const;
+		guid_t guid() const;
+
 		void activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl);
 		void deactivate();
 		void check_remove(); // 检查剩下的是否已经非法了
