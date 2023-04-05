@@ -147,7 +147,12 @@ void grid_aoi::update_all()
 		while(temp_entry)
 		{
 			auto one_entity = temp_entry->entity;
-			auto one_entity_max_radius= one_entity->max_radius();
+			if (one_entity->radius_entities().empty())
+			{
+				continue;
+			}
+			auto cur_max_radius_entity = one_entity->radius_entities()[0];
+			auto one_entity_max_radius= cur_max_radius_entity->radius();
 			temp_aoi_result.clear();
 			// 过滤所有在范围内的entity
 			const auto& one_entity_pos = one_entity->pos();
@@ -155,12 +160,11 @@ void grid_aoi::update_all()
 			int grid_z_min = cacl_grid_id(one_entity_pos[2] - one_entity_max_radius);
 			int grid_x_max = cacl_grid_id(one_entity_pos[0] + one_entity_max_radius);
 			int grid_z_max = cacl_grid_id(one_entity_pos[2] + one_entity_max_radius);
-			auto radius_square = one_entity_max_radius * one_entity_max_radius;
 			const auto& pos_1 = one_entity->pos();
 			auto filter_lambda = [&](const pos_t& pos_2){
 				auto diff_x = pos_1[0] - pos_2[0];
 				auto diff_z = pos_1[2] - pos_2[2];
-				return diff_z * diff_z + diff_x*diff_x <= radius_square;
+				return cur_max_radius_entity->check_radius(diff_x, diff_z);
 			};
 			for(int m = grid_x_min; m <= grid_x_max; m++)
 			{

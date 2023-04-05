@@ -112,7 +112,7 @@ void axis_list::remove_node(list_node* cur)
 
 void axis_list::insert_radius_entity(aoi_radius_entity* radius_entity)
 {
-	if (m_nodes_for_anchor.empty())
+	if (m_nodes_for_anchor.empty() || m_nodes_for_anchor.size() * m_node_per_anchor < m_nodes_buffer.used_count() / 2)
 	{
 		update_anchors();
 	}
@@ -163,7 +163,7 @@ void axis_list::remove_radius_entity(aoi_radius_entity* radius_entity)
 
 void axis_list::insert_pos_entity(aoi_pos_entity* pos_entity)
 {
-	if (m_nodes_for_anchor.empty())
+	if (m_nodes_for_anchor.empty() || m_nodes_for_anchor.size() * m_node_per_anchor < m_nodes_buffer.used_count()/ 2)
 	{
 		update_anchors();
 	}
@@ -178,8 +178,8 @@ void axis_list::insert_pos_entity(aoi_pos_entity* pos_entity)
 	std::uint32_t last_hint = 0;
 	list_node* last_node = &m_head;
 	insert_node(center_node, true);
-	auto boundary_left = find_boundary(pos_entity->pos()[m_xz_pos_idx] - m_max_radius, true);
-	auto boundary_right = find_boundary(pos_entity->pos()[m_xz_pos_idx] + m_max_radius, false);
+	auto boundary_left = find_boundary(pos_entity->pos()[m_xz_pos_idx] - 2* m_max_radius, true);
+	auto boundary_right = find_boundary(pos_entity->pos()[m_xz_pos_idx] + 2*m_max_radius, false);
 	m_nodes_for_pos[pos_entity->pos_idx().value] = center_node;
 	while (boundary_left != boundary_right)
 	{

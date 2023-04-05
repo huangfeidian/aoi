@@ -13,6 +13,7 @@ namespace spiritsaway::aoi
 		std::vector<std::size_t> avail_indexes;
 		std::size_t cur_avail_idx = 0;
 		std::size_t size;
+		std::size_t m_used_count = 0;
 	public:
 		frozen_pool(std::size_t in_size)
 			: data(in_size)
@@ -34,6 +35,7 @@ namespace spiritsaway::aoi
 			auto& next = avail_indexes[cur_avail_idx];
 			cur_avail_idx = next;
 			next = size;
+			m_used_count++;
 			return result;
 		}
 		void push(T* element)
@@ -49,6 +51,11 @@ namespace spiritsaway::aoi
 			}
 			avail_indexes[offset] = cur_avail_idx;
 			cur_avail_idx = offset;
+			m_used_count--;
+		}
+		std::size_t used_count() const
+		{
+			return m_used_count;
 		}
 
 	};
