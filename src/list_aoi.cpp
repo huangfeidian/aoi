@@ -31,7 +31,11 @@ bool list_2d_aoi::remove_pos_entity(aoi_pos_entity* cur_entity)
 
 bool list_2d_aoi::add_radius_entity(aoi_radius_entity* cur_entity)
 {
-
+	// 不支持带高度差
+	if (cur_entity->aoi_radius_ctrl().min_height != cur_entity->aoi_radius_ctrl().max_height)
+	{
+		return false;
+	}
 	m_x_axis.insert_radius_entity(cur_entity);
 	m_z_axis.insert_radius_entity(cur_entity);
 	m_radius_entity_num++;
