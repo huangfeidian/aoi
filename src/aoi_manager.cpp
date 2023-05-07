@@ -259,9 +259,9 @@ bool aoi_manager::change_aoi_contrl(aoi_radius_idx radius_idx, const aoi_radius_
 	{
 		return false;
 	}
-	auto pre_radius = cur_entity->radius();
+	auto pre_controler = cur_entity->aoi_radius_ctrl();
 	cur_entity->owner().change_aoi_ctrl(radius_idx, aoi_radius_ctrl);
-	m_aoi_impl->on_radius_update(cur_entity, aoi_radius_ctrl.radius - pre_radius);
+	m_aoi_impl->on_ctrl_update(cur_entity, pre_controler);
 	return true;
 }
 

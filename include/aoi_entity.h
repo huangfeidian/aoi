@@ -84,7 +84,10 @@ namespace spiritsaway::aoi
 		pos_unit_t radius = 0;// aoi的接收半径 为0 代表不接受aoi信息
 		pos_unit_t min_height = 0; // 目标与当前entity的高度差不得小于这个值
 		pos_unit_t max_height = 0; // 目标与当前entity的高度差不得大于这个值
-		
+		bool ignore_height() const
+		{
+			return min_height == max_height;
+		}
 	};
 
 

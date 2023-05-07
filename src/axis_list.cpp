@@ -3,14 +3,14 @@
 #include <cmath>
 using namespace spiritsaway::aoi;
 
-axis_list::axis_list(std::uint32_t in_max_entity_count, std::uint32_t in_max_radius_count, pos_unit_t in_max_aoi_radius, int in_xz_pos_idx, pos_unit_t in_min_pos, pos_unit_t in_max_pos)
+axis_list::axis_list(std::uint32_t in_max_entity_count, std::uint32_t in_max_radius_count, pos_unit_t in_max_aoi_radius, int in_xyz_pos_idx, pos_unit_t in_min_pos, pos_unit_t in_max_pos)
 : m_max_entity_count(in_max_entity_count)
 , m_node_per_anchor(40)
 , m_min_pos(in_min_pos)
 , m_max_pos(in_max_pos)
 , m_max_radius(in_max_aoi_radius)
 , m_nodes_buffer((in_max_radius_count  + in_max_entity_count) * 2)
-, m_xz_pos_idx(in_xz_pos_idx)
+, m_xyz_pos_idx(in_xyz_pos_idx)
 , m_nodes_for_radius(in_max_radius_count, {nullptr, nullptr})
 , m_nodes_for_pos(in_max_entity_count, nullptr)
 {
@@ -110,7 +110,7 @@ void axis_list::remove_node(list_node* cur)
 	cur->prev = nullptr;
 }
 
-void axis_list::insert_radius_entity(aoi_radius_entity* radius_entity)
+void axis_list::insert_radius_entity(aoi_radius_entity* radius_entity, pos_unit_t radius, pos_unit_t offset)
 {
 	if (m_nodes_for_anchor.empty() || m_nodes_for_anchor.size() * m_node_per_anchor < m_nodes_buffer.used_count() / 2)
 	{
@@ -132,8 +132,8 @@ void axis_list::insert_radius_entity(aoi_radius_entity* radius_entity)
 	radius_left->node_type = list_node_type::left;
 	radius_right->node_type = list_node_type::right;
 	radius_left->radius_entity = radius_right->radius_entity = radius_entity;
-	radius_left->pos = radius_entity->pos()[m_xz_pos_idx] - radius_entity->radius();
-	radius_right->pos = radius_entity->pos()[m_xz_pos_idx] + radius_entity->radius();
+	radius_left->pos = radius_entity->pos()[m_xyz_pos_idx] + offset - radius;
+	radius_right->pos = radius_entity->pos()[m_xyz_pos_idx] + offset + radius;
 
 	insert_node(radius_left, true);
 	insert_node(radius_right, false);
@@ -173,13 +173,13 @@ void axis_list::insert_pos_entity(aoi_pos_entity* pos_entity)
 		return;
 	}
 	center_node->node_type = list_node_type::center;
-	center_node->pos = pos_entity->pos()[m_xz_pos_idx];
+	center_node->pos = pos_entity->pos()[m_xyz_pos_idx];
 	center_node->pos_entity = pos_entity;
 	std::uint32_t last_hint = 0;
 	list_node* last_node = &m_head;
 	insert_node(center_node, true);
-	auto boundary_left = find_boundary(pos_entity->pos()[m_xz_pos_idx] - 2* m_max_radius, true);
-	auto boundary_right = find_boundary(pos_entity->pos()[m_xz_pos_idx] + 2*m_max_radius, false);
+	auto boundary_left = find_boundary(pos_entity->pos()[m_xyz_pos_idx] - 2* m_max_radius, true);
+	auto boundary_right = find_boundary(pos_entity->pos()[m_xyz_pos_idx] + 2*m_max_radius, false);
 	m_nodes_for_pos[pos_entity->pos_idx().value] = center_node;
 	while (boundary_left != boundary_right)
 	{
@@ -366,47 +366,52 @@ void axis_list::update_entity_pos(aoi_pos_entity* pos_entity, pos_unit_t offset)
 	
 
 }
-void axis_list::update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_t delta_radius)
+void axis_list::update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_t delta_radius, pos_unit_t offset)
 {
-	if(delta_radius == 0)
-	{
-		return;
-	}
+
 	auto cur_nodes = m_nodes_for_radius[radius_entity->radius_idx().value];
 	auto left_node = cur_nodes.first;
 	auto right_node = cur_nodes.second;
-	left_node->pos += delta_radius;
-	right_node->pos -= delta_radius;
+	auto right_diff = offset + delta_radius;
+	auto left_diff = offset - delta_radius;
+	left_node->pos += left_diff;
+	right_node->pos += right_diff;
 	m_sweep_buffer[0].middle.clear();
-	m_sweep_buffer[1].middle.clear();
-	if(delta_radius > 0)
+	if (right_diff > 0)
 	{
 		move_forward(right_node, m_sweep_buffer[0], (std::uint8_t)list_node_type::center);
-		move_backward(left_node, m_sweep_buffer[1], (std::uint8_t)list_node_type::center);
 		for (auto one_ent : m_sweep_buffer[0].middle)
 		{
 			radius_entity->try_enter(*one_ent);
 		}
-		for (auto one_ent : m_sweep_buffer[1].middle)
-		{
-			radius_entity->try_enter(*one_ent);
-		}
-
 	}
 	else
 	{
-		move_forward(left_node, m_sweep_buffer[0], (std::uint8_t)list_node_type::center);
-		move_backward(right_node, m_sweep_buffer[1], (std::uint8_t)list_node_type::center);
+		move_backward(right_node, m_sweep_buffer[0], (std::uint8_t)list_node_type::center);
 		for (auto one_ent : m_sweep_buffer[0].middle)
 		{
 			radius_entity->try_leave(*one_ent);
 		}
-		for (auto one_ent : m_sweep_buffer[1].middle)
+	}
+
+	m_sweep_buffer[0].middle.clear();
+	if (left_diff > 0)
+	{
+		move_forward(left_node, m_sweep_buffer[0], (std::uint8_t)list_node_type::center);
+		for (auto one_ent : m_sweep_buffer[0].middle)
 		{
 			radius_entity->try_leave(*one_ent);
 		}
-
 	}
+	else
+	{
+		move_backward(left_node, m_sweep_buffer[0], (std::uint8_t)list_node_type::center);
+		for (auto one_ent : m_sweep_buffer[0].middle)
+		{
+			radius_entity->try_enter(*one_ent);
+		}
+	}
+	
 	
 }
 

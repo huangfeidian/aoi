@@ -37,10 +37,11 @@ void brute_aoi::on_position_update(aoi_pos_entity* entity, pos_t new_pos)
 	entity->set_pos(new_pos);
 }
 
-void brute_aoi::on_radius_update(aoi_radius_entity* entity, pos_unit_t diff_radius)
+void brute_aoi::on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_controler& pre_ctrl)
 {
 
 }
+
 void brute_aoi::update_all()
 {
 	std::vector<aoi_pos_entity*> temp_entities;

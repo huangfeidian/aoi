@@ -80,7 +80,7 @@ namespace spiritsaway::aoi
 		const pos_unit_t m_min_pos;
 		const pos_unit_t m_max_pos;
 		const pos_unit_t m_max_radius;
-		const int m_xz_pos_idx;
+		const int m_xyz_pos_idx;
 		sweep_result m_sweep_buffer[3];
 		void insert_before(list_node* next, list_node* cur);
 		void remove_node(list_node* cur);
@@ -89,16 +89,16 @@ namespace spiritsaway::aoi
 		list_node* find_boundary(pos_unit_t pos, bool is_lower) const;
 		void insert_node(list_node* cur, bool is_lower);
 	public:
-		axis_list(std::uint32_t max_entity_count,std::uint32_t max_radius_count, pos_unit_t max_aoi_radius, int xz_pos_idx, pos_unit_t min_pos, pos_unit_t max_pos);
+		axis_list(std::uint32_t max_entity_count,std::uint32_t max_radius_count, pos_unit_t max_aoi_radius, int xyz_pos_idx, pos_unit_t min_pos, pos_unit_t max_pos);
 		void update_anchors();
 		void insert_pos_entity(aoi_pos_entity* pos_entity);
 
 		void remove_pos_entity(aoi_pos_entity* pos_entity);
 
-		void insert_radius_entity(aoi_radius_entity* radius_entity);
+		void insert_radius_entity(aoi_radius_entity* radius_entity, pos_unit_t radius, pos_unit_t offset);
 		void remove_radius_entity(aoi_radius_entity* radius_entity);
 		void update_entity_pos(aoi_pos_entity* pos_entity, pos_unit_t offset);
-		void update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_t delta_radius);
+		void update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_t delta_radius, pos_unit_t offset = 0);
 		std::vector<aoi_pos_entity*> entity_in_range(pos_unit_t range_begin, pos_unit_t range_end) const;
 		void dump(std::ostream& out_debug) const;
 	};
