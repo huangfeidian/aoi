@@ -49,7 +49,7 @@ namespace spiritsaway::aoi
 		// 获取平面内正方形区域内的entity 列表
 		std::vector<guid_t> entity_in_square(pos_t center, pos_unit_t width);
 		// 获取长方体区域内的entity列表
-		std::vector<guid_t> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height);
+		std::vector<guid_t> entity_in_cuboid(pos_t center, pos_t extend);
 		// 获取立方体区域内的entity列表
 		std::vector<guid_t> entity_in_cube(pos_t center, pos_unit_t width);
 		// 获取2d 扇形区域内的entity 列表 yaw为扇形中心朝向的弧度， yaw range为左右两侧的弧度偏移

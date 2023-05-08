@@ -31,7 +31,7 @@ namespace spiritsaway::aoi
 		std::vector<aoi_pos_entity*> entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height) const override;
 		std::vector<aoi_pos_entity*> entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width) const override;
 
-		std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const override;
+		std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_t extend) const override;
 		void dump(std::ostream& out_debug) const override;
 	private:
 		void unlink(grid_entry* cur_entry);

@@ -235,8 +235,12 @@ std::vector<aoi_pos_entity*> grid_aoi::entity_in_rectangle(pos_t center, pos_uni
 	return filter_pos_entity_in_grids(grid_x_min, grid_z_min, grid_x_max, grid_z_max, filter_lambda);
 }
 
-std::vector<aoi_pos_entity*> grid_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height) const
+std::vector<aoi_pos_entity*> grid_aoi::entity_in_cuboid(pos_t center,  pos_t extend) const
 {
+	pos_unit_t x_width, z_width, y_height;
+	x_width = extend[0];
+	z_width = extend[2];
+	y_height = extend[1];
 	int grid_x_min = cacl_grid_id(center[0] - x_width);
 	int grid_z_min =  cacl_grid_id(center[2] - z_width);
 	int grid_x_max = cacl_grid_id(center[0] + x_width);

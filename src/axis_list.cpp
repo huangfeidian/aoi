@@ -415,6 +415,13 @@ void axis_list::update_entity_radius(aoi_radius_entity* radius_entity, pos_unit_
 	
 }
 
+std::uint32_t axis_list::anchor_num_in_range(pos_unit_t range_begin, pos_unit_t range_end) const
+{
+	auto hint_1 = std::lower_bound(m_anchor_poses.begin(), m_anchor_poses.end(), std::max(m_min_pos + 2, range_begin));
+	auto hint_2 = std::lower_bound(hint_1, m_anchor_poses.end(), std::min(m_max_pos - 2, range_end));
+	return std::distance(hint_1, hint_2);
+}
+
 void axis_list::dump(std::ostream& out_debug) const
 {
 	auto cur_node = m_head.next;

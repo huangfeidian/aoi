@@ -368,13 +368,13 @@ std::vector<guid_t> aoi_manager::entity_in_square(pos_t center, pos_unit_t width
 	return entity_in_rectangle(center, width, width);
 }
 
-std::vector<guid_t> aoi_manager::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)
+std::vector<guid_t> aoi_manager::entity_in_cuboid(pos_t center, pos_t extend)
 {
 	if(!m_aoi_impl)
 	{
 		return {};
 	}
-	return entity_vec_to_guid(m_aoi_impl->entity_in_cuboid(center, x_width, z_width, y_height));
+	return entity_vec_to_guid(m_aoi_impl->entity_in_cuboid(center, extend));
 }
 
 std::vector<guid_t> aoi_manager::entity_in_cube(pos_t center, pos_unit_t width)

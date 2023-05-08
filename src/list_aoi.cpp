@@ -9,7 +9,9 @@ list_2d_aoi::list_2d_aoi(aoi_idx_t in_max_agent,  aoi_idx_t in_max_radius_size, 
 , m_z_axis(in_max_agent, in_max_radius_size, in_max_aoi_radius, 2, in_border_min[2], in_border_max[2])
 , m_entity_byteset(in_max_agent)
 {
-
+	m_axis_ptrs[0] = &m_x_axis;
+	m_axis_ptrs[1] = &m_y_axis;
+	m_axis_ptrs[2] = &m_z_axis;
 }
 bool list_2d_aoi::add_pos_entity(aoi_pos_entity* cur_entity)
 {
@@ -193,6 +195,26 @@ std::vector<aoi_pos_entity*> list_2d_aoi::merge_result(const std::vector<aoi_pos
 	return entity_result;
 }
 
+int list_2d_aoi::choose_axis(pos_t center, pos_t extend, bool ignore_y) const
+{
+	int result = 0;
+	int min_num = 65535;
+	for (int i = 0; i < 3; i++)
+	{
+		if (i == 1 && ignore_y)
+		{
+			continue;
+		}
+		auto temp_result = m_axis_ptrs[i]->anchor_num_in_range(center[i] - extend[i], center[i] + extend[i]);
+		if (temp_result < min_num)
+		{
+			result = i;
+			min_num = temp_result;
+		}
+	}
+	return result;
+}
+
 std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const
 {
 	auto axis_x_result = m_x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
@@ -221,33 +243,62 @@ std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_circle(pos_t center, pos_uni
 }
 std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const
 {
-	auto axis_x_result = m_x_axis.entity_in_range(center[0] - radius, center[0] + radius);
-	auto axis_y_result = m_y_axis.entity_in_range(center[0] - radius, center[0] + radius);
-	auto axis_z_result = m_z_axis.entity_in_range(center[2] - radius, center[2] + radius);
-	auto  entity_result = merge_result(axis_x_result, axis_y_result, axis_z_result);
+	auto extend = pos_t{ radius, height, radius };
+	auto best_axis = choose_axis(center, extend);
+	auto axis_result = m_axis_ptrs[best_axis]->entity_in_range(center[best_axis], extend[best_axis]);
+
 	std::vector<aoi_pos_entity*> find_result;
-	find_result.reserve(entity_result.size());
-	for(auto one_entity:entity_result)
+	find_result.reserve(axis_result.size());
+	auto radius_sqr = radius * radius;
+	for(auto one_entity: axis_result)
 	{
 		pos_unit_t diff_x = center[0] - one_entity->pos()[0];
+		pos_unit_t diff_y = center[1] - one_entity->pos()[1];
 		pos_unit_t diff_z = center[2] - one_entity->pos()[2];
-		if((diff_x * diff_x + diff_z * diff_z) > radius * radius)
+		
+		if((diff_x * diff_x + diff_z * diff_z) > radius_sqr)
 		{
 			continue;
 		}
-
+		if (std::abs(diff_y) > height)
+		{
+			continue;
+		}
 		find_result.push_back(one_entity);
 	}
 	return find_result;
 }
-std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
+std::vector<aoi_pos_entity*> list_2d_aoi::entity_in_cuboid(pos_t center, pos_t extend)const
 {
-	auto axis_x_result = m_x_axis.entity_in_range(center[0] - x_width, center[0] + x_width);
-	auto axis_y_result = m_y_axis.entity_in_range(center[0] - y_height, center[0] + y_height);
-	auto axis_z_result = m_z_axis.entity_in_range(center[2] - z_width, center[2] + z_width);
-	auto  entity_result = merge_result(axis_x_result, axis_y_result, axis_z_result);
-	
-	return entity_result;
+	auto best_axis = choose_axis(center, extend);
+	auto axis_result = m_axis_ptrs[best_axis]->entity_in_range(center[best_axis], extend[best_axis]);
+	pos_unit_t x_width, z_width, y_height;
+	x_width = extend[0];
+	z_width = extend[2];
+	y_height = extend[1];
+	std::vector<aoi_pos_entity*> find_result;
+	find_result.reserve(axis_result.size());
+	for (auto one_entity : axis_result)
+	{
+		pos_unit_t diff_x = center[0] - one_entity->pos()[0];
+		pos_unit_t diff_y = center[1] - one_entity->pos()[1];
+		pos_unit_t diff_z = center[2] - one_entity->pos()[2];
+
+		if (std::abs(diff_x) > x_width)
+		{
+			continue;
+		}
+		if (std::abs(diff_y) > y_height)
+		{
+			continue;
+		}
+		if (std::abs(diff_z) > z_width)
+		{
+			continue;
+		}
+		find_result.push_back(one_entity);
+	}
+	return find_result;
 }
 
 void list_2d_aoi::dump(std::ostream& out_debug) const

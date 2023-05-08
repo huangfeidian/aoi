@@ -18,8 +18,9 @@ namespace spiritsaway::aoi
 		std::uint32_t m_dirty_count = 0; // 出发子aoi list的anchor更新
 		std::uint32_t m_pos_entity_num = 0;
 		std::uint32_t m_radius_entity_num = 0;
-
-
+		std::array< axis_list*, 3> m_axis_ptrs;
+	private:
+		int choose_axis(pos_t center, pos_t extend, bool ignore_y = true) const;
 	public:
 		list_2d_aoi(aoi_idx_t max_entity_size, aoi_idx_t max_radius_size, pos_unit_t max_aoi_radius, pos_t border_min, pos_t border_max);
 		bool add_pos_entity(aoi_pos_entity* cur_entity) override;
@@ -31,7 +32,7 @@ namespace spiritsaway::aoi
 		std::vector<aoi_pos_entity*> entity_in_circle(pos_t center, pos_unit_t radius) const override;
 		std::vector<aoi_pos_entity*> entity_in_cylinder(pos_t center, pos_unit_t radius, pos_unit_t height)const override;
 		std::vector<aoi_pos_entity*> entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width)const override;
-		std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const override;
+		std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_t extend)const override;
 		void update_all() override;
 		void dump(std::ostream& out_debug) const override;
 		std::vector<aoi_pos_entity*> merge_result(const std::vector<aoi_pos_entity*>& axis_x_result, const std::vector<aoi_pos_entity*>& axis_z_result) const;

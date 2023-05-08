@@ -111,9 +111,14 @@ std::vector<aoi_pos_entity*> brute_aoi::entity_in_cylinder(pos_t center, pos_uni
 	}
 	return entity_result;
 }
-std::vector<aoi_pos_entity*> brute_aoi::entity_in_cuboid(pos_t center, pos_unit_t x_width, pos_unit_t z_width, pos_unit_t y_height)const
+std::vector<aoi_pos_entity*> brute_aoi::entity_in_cuboid(pos_t center, pos_t extend)const
 {
 	std::vector<aoi_pos_entity*> entity_result;
+	entity_result.reserve(8);
+	pos_unit_t x_width, z_width, y_height;
+	x_width = extend[0];
+	z_width = extend[2];
+	y_height = extend[1];
 	for(auto one_entity: m_pos_entities)
 	{
 		auto diff_x = center[0] - one_entity->pos()[0];
