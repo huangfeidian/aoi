@@ -379,7 +379,7 @@ std::vector<guid_t> aoi_manager::entity_in_cuboid(pos_t center, pos_t extend)
 
 std::vector<guid_t> aoi_manager::entity_in_cube(pos_t center, pos_unit_t width)
 {
-	return entity_vec_to_guid(m_aoi_impl->entity_in_cuboid(center, width, width, width));
+	return entity_vec_to_guid(m_aoi_impl->entity_in_cuboid(center, pos_t{ width, width, width }));
 }
 std::vector<guid_t> aoi_manager::entity_in_fan(pos_t center, pos_unit_t radius, float yaw, float yaw_range)
 {
