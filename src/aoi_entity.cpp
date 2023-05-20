@@ -55,7 +55,7 @@ bool aoi_radius_entity::check_flag(const aoi_pos_entity& other) const
         return false;
     }
     // 拥有any flag里的任何一个bit
-    return other_flag | m_aoi_radius_ctrl.any_flag; 
+    return other_flag & m_aoi_radius_ctrl.any_flag; 
 
 }
 bool aoi_radius_entity::can_add_enter(const aoi_pos_entity& other, bool ignore_dist, bool force_add) const
