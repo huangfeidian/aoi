@@ -263,6 +263,13 @@ void aoi_pos_entity::check_add(aoi_pos_entity* other)
 
 bool aoi_radius_entity::check_remove(aoi_pos_entity* cur_pos_entity)
 {
+    if (cur_pos_entity->interested_by().empty())
+    {
+        // 说明cur_pos_entity已经被删除了 因此此时要触发leave
+        m_force_interest_in.erase(cur_pos_entity->pos_idx());
+        leave_impl(*cur_pos_entity);
+        return true;
+    }
     if (m_force_interest_in.find(cur_pos_entity->pos_idx()) != m_force_interest_in.end())
     {
         return false;

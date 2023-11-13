@@ -89,7 +89,7 @@ bool grid_aoi::add_pos_entity(aoi_pos_entity* entity)
 	entity->cacl_data = cur_entry;
 	cur_entry->entity = entity;
 	link(cur_entry, entity->pos());
-
+	m_pos_entities[entity->pos_idx()] = entity;
 	return true;
 }
 bool grid_aoi::remove_pos_entity(aoi_pos_entity* entity)
@@ -102,6 +102,7 @@ bool grid_aoi::remove_pos_entity(aoi_pos_entity* entity)
 	unlink(cur_entry);
 	entity->cacl_data = nullptr;
 	entry_pool.push(cur_entry);
+	m_pos_entities.erase(entity->pos_idx());
 	return true;
 
 }

@@ -579,6 +579,49 @@ void test_traceback()
 	test_move_speed(total_aoi_mgrs, entity_poses, entity_radiuses, entity_diffs);
 	destroy_aoi_mgrs(total_aoi_mgrs);
 }
+
+void test_simple()
+{
+	std::uint32_t max_entity_size = 1000;
+	float max_aoi_radius = 120.0f;
+	float min_aoi_radius = 20.0f;
+	pos_t border_min{ -10000.0f, -10000.0f, -10000.0f };
+	pos_t border_max{ 10000.0f, 10000.0f, 10000.0f };
+	std::uint32_t grid_block_size = 4096;
+	std::uint32_t grid_size = 100;
+
+	aoi_radius_controler cur_aoi_radius_ctrl;
+	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
+	cur_aoi_radius_ctrl.any_flag = 1;
+	cur_aoi_radius_ctrl.forbid_flag = 0;
+	cur_aoi_radius_ctrl.need_flag = 1;
+	cur_aoi_radius_ctrl.max_interest_in = 30;
+	cur_aoi_radius_ctrl.radius = 10.0f;
+	pos_t born_pos = { 0,0,0 };
+	std::function<void(guid_t, const std::vector<aoi_notify_info>&)> result_lambda = [](guid_t guid, const std::vector<aoi_notify_info>& notifys)
+	{
+		std::cout << "guid " << guid<<" notifyes "<<notifys.size()<<std::endl;
+		for (const auto& one_notify : notifys)
+		{
+			std::cout << "is_enter " << one_notify.is_enter <<" " << one_notify.self_radius_idx.value << " " << one_notify.other_guid << " " << one_notify.other_pos_idx.value << std::endl;
+		}
+	};
+	auto grid_impl = new grid_aoi(max_entity_size, max_aoi_radius, border_min, border_max, grid_size, grid_block_size);
+
+	auto grid_aoi_mgr = new aoi_manager(false, grid_impl, max_entity_size, 4 * max_entity_size, border_min, border_max, result_lambda);
+	auto a_aoi_idx = grid_aoi_mgr->add_pos_entity(1, born_pos, 1);
+	auto a_radius_idx = grid_aoi_mgr->add_radius_entity(a_aoi_idx, cur_aoi_radius_ctrl);
+	grid_aoi_mgr->update();
+	auto b_aoi_idx = grid_aoi_mgr->add_pos_entity(2, born_pos, 1);
+	cur_aoi_radius_ctrl.radius = 30;
+	auto b_radius_idx = grid_aoi_mgr->add_radius_entity(b_aoi_idx, cur_aoi_radius_ctrl);
+
+	grid_aoi_mgr->update();
+
+	grid_aoi_mgr->remove_pos_entity(b_aoi_idx);
+	grid_aoi_mgr->update();
+
+}
 int main()
 {
 	std::uint32_t max_entity_size = 1000;
@@ -587,6 +630,7 @@ int main()
 	pos_t border_min{ -10000.0f, -10000.0f, -10000.0f };
 	pos_t border_max{ 10000.0f, 10000.0f, 10000.0f };
 
+	test_simple();
 	//std::vector<pos_t> entity_poses;
 	//std::vector<pos_unit_t> entity_radius;
 	//load_input(entity_poses, entity_radius);
