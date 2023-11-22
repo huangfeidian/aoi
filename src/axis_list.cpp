@@ -282,6 +282,7 @@ std::vector<aoi_pos_entity*> axis_list::entity_in_range(pos_unit_t range_begin, 
 	return result;
 }
 
+
 void axis_list::update_entity_pos(aoi_pos_entity* pos_entity, pos_unit_t offset)
 {
 	if(offset == 0)

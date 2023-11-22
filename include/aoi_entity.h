@@ -269,7 +269,7 @@ namespace spiritsaway::aoi
 		{
 			return m_entity_flag;
 		}
-		void change_flag(std::uint64_t new_entity_flag);
+		bool change_flag(std::uint64_t new_entity_flag, std::vector<aoi_radius_entity*>& result);
 		void activate(const pos_t& in_pos, guid_t in_guid, std::uint64_t in_entity_flag);
 		void deactivate();
 		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl);

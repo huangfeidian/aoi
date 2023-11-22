@@ -272,4 +272,10 @@ void grid_aoi::dump(std::ostream& out_debug) const
 	}
 }
 
+void grid_aoi::on_flag_update(aoi_pos_entity* entity)
+{
+
+}
+
+
 

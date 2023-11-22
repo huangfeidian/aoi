@@ -42,6 +42,10 @@ void brute_aoi::on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_contr
 
 }
 
+void brute_aoi::on_flag_update(aoi_pos_entity* entity)
+{
+
+}
 void brute_aoi::update_all()
 {
 	std::vector<aoi_pos_entity*> temp_entities;

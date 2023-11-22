@@ -21,7 +21,7 @@ namespace spiritsaway::aoi
 		aoi_pos_idx add_pos_entity(guid_t guid, const pos_t& in_pos, std::uint64_t in_entity_flag);
 
 		bool remove_pos_entity(aoi_pos_idx pos_idx); // 如果还挂载有radius entity 则先删除radius entity 再删除pos entity
-
+		bool change_entity_flag(aoi_pos_idx pos_idx, std::uint64_t new_flag);
 		aoi_radius_idx add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl);
 		bool remove_radius_entity(aoi_radius_idx radius_idx);
 
@@ -68,6 +68,7 @@ namespace spiritsaway::aoi
 		std::vector<aoi_pos_idx> m_avail_pos_slots;
 		std::unordered_set<aoi_idx_t> m_pos_entities_removed;
 
+		std::vector<aoi_radius_entity*> m_temp_radius_result;
 		std::vector<aoi_radius_entity*> m_radius_entities;
 		std::vector<aoi_radius_idx> m_avail_radius_slots;
 		std::unordered_set<aoi_idx_t> m_radius_entities_removed;

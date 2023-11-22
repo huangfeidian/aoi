@@ -198,7 +198,7 @@ std::vector<aoi_pos_entity*> list_2d_aoi::merge_result(const std::vector<aoi_pos
 int list_2d_aoi::choose_axis(pos_t center, pos_t extend, bool ignore_y) const
 {
 	int result = 0;
-	int min_num = 65535;
+	std::uint32_t min_num = 65535;
 	for (int i = 0; i < 3; i++)
 	{
 		if (i == 1 && ignore_y)
@@ -309,4 +309,13 @@ void list_2d_aoi::dump(std::ostream& out_debug) const
 	m_y_axis.dump(out_debug);
 	out_debug << "z_aoi list is" << std::endl;
 	m_z_axis.dump(out_debug);
+}
+
+void list_2d_aoi::on_flag_update(aoi_pos_entity* entity)
+{
+	auto temp_entities = entity_in_cuboid(entity->pos(), pos_t{ max_aoi_radius, max_aoi_radius, max_aoi_radius });
+	for (auto one_entity : temp_entities)
+	{
+		one_entity->check_add(entity);
+	}
 }

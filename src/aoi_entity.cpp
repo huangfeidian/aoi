@@ -400,11 +400,11 @@ void aoi_pos_entity::change_aoi_ctrl(aoi_radius_idx cur_radius_idx, const aoi_ra
     }
 }
 
-void aoi_pos_entity::change_flag(std::uint64_t new_entity_flag)
+bool aoi_pos_entity::change_flag(std::uint64_t new_entity_flag, std::vector<aoi_radius_entity*>& result)
 {
     if (m_entity_flag == new_entity_flag)
     {
-        return;
+        return false;
     }
     m_entity_flag = new_entity_flag;
     auto m_pos = pos();
@@ -413,8 +413,11 @@ void aoi_pos_entity::change_flag(std::uint64_t new_entity_flag)
     {
         auto other = *temp_iter;
         temp_iter++;
-        other->check_remove(this);
+        if (other->check_remove(this))
+        {
+            result.push_back(other);
+        }
 
     }
-
+    return true;
 }

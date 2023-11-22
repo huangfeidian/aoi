@@ -15,7 +15,7 @@ namespace spiritsaway::aoi
 		axis_list m_y_axis;
 		axis_list m_z_axis;
 		mutable std::vector<std::uint8_t> m_entity_byteset;
-		std::uint32_t m_dirty_count = 0; // 出发子aoi list的anchor更新
+		std::uint32_t m_dirty_count = 0; // 触发子aoi list的anchor更新
 		std::uint32_t m_pos_entity_num = 0;
 		std::uint32_t m_radius_entity_num = 0;
 		std::array< axis_list*, 3> m_axis_ptrs;
@@ -38,5 +38,6 @@ namespace spiritsaway::aoi
 		std::vector<aoi_pos_entity*> merge_result(const std::vector<aoi_pos_entity*>& axis_x_result, const std::vector<aoi_pos_entity*>& axis_z_result) const;
 
 		std::vector<aoi_pos_entity*> merge_result(const std::vector<aoi_pos_entity*>& axis_x_result, const std::vector<aoi_pos_entity*>& axis_y_result, const std::vector<aoi_pos_entity*>& axis_z_result) const;
+		void on_flag_update(aoi_pos_entity* entity) override;
 	};
 }

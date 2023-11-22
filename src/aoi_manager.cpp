@@ -513,3 +513,31 @@ void aoi_manager::update()
 
 }
 
+bool aoi_manager::change_entity_flag(aoi_pos_idx pos_idx, std::uint64_t new_flag)
+{
+	if (pos_idx.value >= m_pos_entities.size())
+	{
+		return false;
+	}
+	auto cur_entity = m_pos_entities[pos_idx.value];
+	if (!cur_entity)
+	{
+		return false;
+	}
+	m_temp_radius_result.clear();
+	if (!cur_entity->change_flag(new_flag, m_temp_radius_result))
+	{
+		return false;
+	}
+	std::vector<aoi_radius_entity*> temp_buffer;
+	std::swap(m_temp_radius_result, temp_buffer);
+	for (auto one_result : temp_buffer)
+	{
+		one_result->owner().invoke_aoi_cb(m_aoi_cb);
+	}
+	m_aoi_impl->on_flag_update(cur_entity);
+	std::swap(m_temp_radius_result, temp_buffer);
+	return true;
+
+}
+

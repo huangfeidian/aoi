@@ -27,6 +27,7 @@ namespace spiritsaway::aoi
 		std::vector<aoi_pos_entity*> entity_in_rectangle(pos_t center, pos_unit_t x_width, pos_unit_t z_width) const override;
 
 		std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_t extend) const override;
+		void on_flag_update(aoi_pos_entity* entity) override;
 		void dump(std::ostream& out_debug) const override;
 	};
 }

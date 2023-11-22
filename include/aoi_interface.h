@@ -19,6 +19,7 @@ namespace spiritsaway::aoi
 		{
 
 		}
+		virtual void on_flag_update(aoi_pos_entity* entity) = 0;
 		virtual bool add_radius_entity(aoi_radius_entity* entity) = 0;
 		virtual bool remove_radius_entity(aoi_radius_entity* entity) = 0;
 		virtual bool add_pos_entity(aoi_pos_entity* entity) = 0;

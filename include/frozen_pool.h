@@ -41,7 +41,7 @@ namespace spiritsaway::aoi
 		void push(T* element)
 		{
 			auto offset = element - data.data();
-			if (offset < 0 || offset >= size)
+			if (offset < 0 || offset >= int(size))
 			{
 				return;
 			}

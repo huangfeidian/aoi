@@ -33,6 +33,7 @@ namespace spiritsaway::aoi
 
 		std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_t extend) const override;
 		void dump(std::ostream& out_debug) const override;
+		void on_flag_update(aoi_pos_entity* entity) override;
 	private:
 		void unlink(grid_entry* cur_entry);
 		void link(grid_entry* cur_entry, const pos_t& pos);
