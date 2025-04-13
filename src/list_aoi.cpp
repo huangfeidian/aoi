@@ -66,7 +66,7 @@ bool list_2d_aoi::remove_radius_entity(aoi_radius_entity* cur_entity)
 	return true;
 }
 
-void list_2d_aoi::on_ctrl_update(aoi_radius_entity* cur_entity, const aoi_radius_controler& pre_ctrl)
+void list_2d_aoi::on_ctrl_update(aoi_radius_entity* cur_entity, const aoi_radius_controller& pre_ctrl)
 {
 	const auto& new_aoi_ctrl = cur_entity->aoi_radius_ctrl();
 	auto pre_radius = pre_ctrl.radius;

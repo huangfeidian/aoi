@@ -19,7 +19,7 @@ namespace spiritsaway::aoi
 
 		bool add_radius_entity(aoi_radius_entity* entity)override;
 		bool remove_radius_entity(aoi_radius_entity* entity)override ;
-		void on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_controler& pre_ctrl) override;
+		void on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_controller& pre_ctrl) override;
 		void update_all() override;
 		std::vector<aoi_pos_entity*> entity_in_circle(pos_t center, pos_unit_t radius) const override;
 

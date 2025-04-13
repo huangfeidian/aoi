@@ -34,7 +34,7 @@ namespace spiritsaway::aoi
 		// 获取长方体区域内的entity列表
 		virtual std::vector<aoi_pos_entity*> entity_in_cuboid(pos_t center, pos_t extend) const = 0;
 		virtual void on_position_update(aoi_pos_entity* entity, pos_t new_pos) = 0;
-		virtual void on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_controler& pre_ctrl) = 0;
+		virtual void on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_controller& pre_ctrl) = 0;
 		virtual void update_all() = 0;
 		virtual void dump(std::ostream& out_debug) const = 0;
 		const aoi_idx_t max_agent;

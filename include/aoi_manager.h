@@ -22,10 +22,10 @@ namespace spiritsaway::aoi
 
 		bool remove_pos_entity(aoi_pos_idx pos_idx); // 如果还挂载有radius entity 则先删除radius entity 再删除pos entity
 		bool change_entity_flag(aoi_pos_idx pos_idx, std::uint64_t new_flag);
-		aoi_radius_idx add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl);
+		aoi_radius_idx add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controller& aoi_radius_ctrl);
 		bool remove_radius_entity(aoi_radius_idx radius_idx);
 
-		bool change_aoi_contrl(aoi_radius_idx radius_idx, const aoi_radius_controler& aoi_radius_ctrl);
+		bool change_aoi_contrl(aoi_radius_idx radius_idx, const aoi_radius_controller& aoi_radius_ctrl);
 		bool change_entity_pos(aoi_pos_idx pos_idx, pos_t pos);
 		// 将guid_from 加入到guid_to的强制关注列表里
 		bool add_force_aoi(aoi_pos_idx pos_idx_from, aoi_radius_idx radius_idx_to);

@@ -75,7 +75,7 @@ namespace std
 namespace spiritsaway::aoi
 {
 
-	struct aoi_radius_controler
+	struct aoi_radius_controller
 	{
 		std::uint64_t any_flag = 0; // 拥有其中任何一个flag都可以进入当前radius
 		std::uint64_t need_flag = 0; // 必须拥有这些flag才能进入当前radius
@@ -109,7 +109,7 @@ namespace spiritsaway::aoi
 		std::unordered_map<aoi_pos_idx, aoi_pos_entity*> m_force_interest_in;// 忽略半径强制加入到当前entity aoi列表的guid
 		std::vector<std::uint8_t> interest_in_bitset; // bitmap 
 		
-		aoi_radius_controler m_aoi_radius_ctrl;
+		aoi_radius_controller m_aoi_radius_ctrl;
 		aoi_pos_entity* m_owner = nullptr;
 		
 	public:
@@ -129,7 +129,7 @@ namespace spiritsaway::aoi
 		
 		
 
-		void change_aoi_ctrl(const aoi_radius_controler& new_aoi_ctrl);
+		void change_aoi_ctrl(const aoi_radius_controller& new_aoi_ctrl);
 
 		inline pos_unit_t radius() const
 		{
@@ -154,7 +154,7 @@ namespace spiritsaway::aoi
 		bool check_radius(pos_unit_t diff_x, pos_unit_t diff_z) const;
 		bool check_height(pos_unit_t diff_height) const;
 		
-		const aoi_radius_controler& aoi_radius_ctrl() const
+		const aoi_radius_controller& aoi_radius_ctrl() const
 		{
 			return m_aoi_radius_ctrl;
 		}
@@ -186,7 +186,7 @@ namespace spiritsaway::aoi
 
 		guid_t guid() const;
 
-		void activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl);
+		void activate(aoi_pos_entity* in_owner, const aoi_radius_controller& aoi_radius_ctrl);
 		void deactivate();
 		void check_remove(); // 检查剩下的是否已经非法了
 		bool check_remove(aoi_pos_entity* cur_pos_entity);
@@ -272,7 +272,7 @@ namespace spiritsaway::aoi
 		bool change_flag(std::uint64_t new_entity_flag, std::vector<aoi_radius_entity*>& result);
 		void activate(const pos_t& in_pos, guid_t in_guid, std::uint64_t in_entity_flag);
 		void deactivate();
-		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl);
+		void add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controller& aoi_radius_ctrl);
 
 		void check_add(aoi_pos_entity* other);
 		void check_remove();
@@ -283,7 +283,7 @@ namespace spiritsaway::aoi
 		{
 			return m_radius_entities;
 		}
-		void change_aoi_ctrl(aoi_radius_idx cur_radius_idx, const aoi_radius_controler& new_aoi_ctrl);
+		void change_aoi_ctrl(aoi_radius_idx cur_radius_idx, const aoi_radius_controller& new_aoi_ctrl);
 		void add_aoi_notify(const aoi_pos_entity& other, aoi_radius_idx radius_idx, bool is_enter);
 
 		void invoke_aoi_cb(const std::function<void(guid_t, const std::vector<aoi_notify_info>&)>& aoi_cb);

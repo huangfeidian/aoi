@@ -125,7 +125,7 @@ void grid_aoi::on_position_update(aoi_pos_entity* entity, pos_t new_pos)
 	link(cur_entry, new_pos);
 }
 
-void grid_aoi::on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_controler& pre_ctrl)
+void grid_aoi::on_ctrl_update(aoi_radius_entity* entity, const aoi_radius_controller& pre_ctrl)
 {
 	
 	return;

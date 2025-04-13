@@ -322,7 +322,7 @@ bool test_add(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity_p
 
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_radius_controler cur_aoi_radius_ctrl;
+	aoi_radius_controller cur_aoi_radius_ctrl;
 	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
 	cur_aoi_radius_ctrl.any_flag = 1;
 	cur_aoi_radius_ctrl.forbid_flag = 0;
@@ -353,7 +353,7 @@ bool test_delete(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entit
 	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_radius_controler cur_aoi_radius_ctrl;
+	aoi_radius_controller cur_aoi_radius_ctrl;
 	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
 	cur_aoi_radius_ctrl.any_flag = 1;
 	cur_aoi_radius_ctrl.forbid_flag = 0;
@@ -409,7 +409,7 @@ bool test_trace(std::vector<aoi_manager*> mgrs, const std::vector<pos_t>& entity
 	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 	auto start = std::chrono::system_clock::now();
 	auto end = std::chrono::system_clock::now();
-	aoi_radius_controler cur_aoi_radius_ctrl;
+	aoi_radius_controller cur_aoi_radius_ctrl;
 	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
 	cur_aoi_radius_ctrl.any_flag = 1;
 	cur_aoi_radius_ctrl.forbid_flag = 0;
@@ -444,7 +444,7 @@ bool test_move_trace(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{ mgrs.size() };
 	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 
-	aoi_radius_controler cur_aoi_radius_ctrl;
+	aoi_radius_controller cur_aoi_radius_ctrl;
 	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
 	cur_aoi_radius_ctrl.any_flag = 1;
 	cur_aoi_radius_ctrl.forbid_flag = 0;
@@ -499,7 +499,7 @@ bool test_move_speed(std::vector<aoi_manager*> mgrs, std::vector<pos_t>& entity_
 	std::vector<std::unordered_map<guid_t, std::array<std::unordered_set<guid_t>, 2>>> aoi_results{ mgrs.size() };
 	std::vector<std::vector<aoi_pos_idx>> aoi_entity_idxes(mgrs.size());
 
-	aoi_radius_controler cur_aoi_radius_ctrl;
+	aoi_radius_controller cur_aoi_radius_ctrl;
 	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
 	cur_aoi_radius_ctrl.any_flag = 1;
 	cur_aoi_radius_ctrl.forbid_flag = 0;
@@ -590,7 +590,7 @@ void test_simple()
 	std::uint32_t grid_block_size = 4096;
 	std::uint32_t grid_size = 100;
 
-	aoi_radius_controler cur_aoi_radius_ctrl;
+	aoi_radius_controller cur_aoi_radius_ctrl;
 	cur_aoi_radius_ctrl.min_height = cur_aoi_radius_ctrl.min_height = 0;
 	cur_aoi_radius_ctrl.any_flag = 1;
 	cur_aoi_radius_ctrl.forbid_flag = 0;

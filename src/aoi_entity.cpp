@@ -158,7 +158,7 @@ bool aoi_radius_entity::leave_by_force(aoi_pos_entity& other)
     }
 }
 
-void aoi_radius_entity::activate(aoi_pos_entity* in_owner, const aoi_radius_controler& aoi_radius_ctrl)
+void aoi_radius_entity::activate(aoi_pos_entity* in_owner, const aoi_radius_controller& aoi_radius_ctrl)
 {
     m_owner = in_owner;
     m_aoi_radius_ctrl = aoi_radius_ctrl;
@@ -209,7 +209,7 @@ void aoi_pos_entity::activate(const pos_t& in_pos, guid_t in_guid, std::uint64_t
     m_entity_flag = in_entity_flag;
 }
 
-void aoi_pos_entity::add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controler& aoi_radius_ctrl)
+void aoi_pos_entity::add_radius_entity(aoi_radius_entity* in_radius_entity, const aoi_radius_controller& aoi_radius_ctrl)
 {
     m_radius_entities.push_back(in_radius_entity);
     in_radius_entity->activate(this, aoi_radius_ctrl);
@@ -376,13 +376,13 @@ void aoi_pos_entity::invoke_aoi_cb(const std::function<void(guid_t, const std::v
     m_during_aoi_cb = false;
 }
 
-void aoi_radius_entity::change_aoi_ctrl(const aoi_radius_controler& new_aoi_ctrl)
+void aoi_radius_entity::change_aoi_ctrl(const aoi_radius_controller& new_aoi_ctrl)
 {
     m_aoi_radius_ctrl = new_aoi_ctrl;
     check_remove();
 }
 
-void aoi_pos_entity::change_aoi_ctrl(aoi_radius_idx cur_radius_idx, const aoi_radius_controler& new_aoi_ctrl)
+void aoi_pos_entity::change_aoi_ctrl(aoi_radius_idx cur_radius_idx, const aoi_radius_controller& new_aoi_ctrl)
 {
     for (std::uint32_t i = 0; i < m_radius_entities.size(); i++)
     {

@@ -132,7 +132,7 @@ aoi_pos_idx aoi_manager::add_pos_entity(guid_t guid, const pos_t& in_pos, std::u
 	}
 
 }
-aoi_radius_idx aoi_manager::add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controler& aoi_radius_ctrl)
+aoi_radius_idx aoi_manager::add_radius_entity(aoi_pos_idx in_pos_idx, const aoi_radius_controller& aoi_radius_ctrl)
 {
 	if(!m_aoi_impl  || !in_pos_idx.value || in_pos_idx.value >= m_pos_entities.size())
 	{
@@ -248,7 +248,7 @@ bool aoi_manager::remove_radius_entity(aoi_radius_idx radius_idx)
 }
 
 
-bool aoi_manager::change_aoi_contrl(aoi_radius_idx radius_idx, const aoi_radius_controler& aoi_radius_ctrl)
+bool aoi_manager::change_aoi_contrl(aoi_radius_idx radius_idx, const aoi_radius_controller& aoi_radius_ctrl)
 {
 	if (radius_idx.value >= m_radius_entities.size())
 	{
